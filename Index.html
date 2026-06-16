@@ -100,6 +100,8 @@
     75% { transform:translateY(-15%) rotate(0deg); } /* peak, upright */
     100%{ transform:translateY(0) rotate(-6deg); }   /* back to the first tilt */
   }
+  #byteAnim.hop-flat{ animation:hopFlat .42s ease-in-out infinite; }
+  @keyframes hopFlat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-14%); } }
   #byteAnim.cheer{ animation:cheer .55s ease infinite; }
   @keyframes cheer{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-12%);} }
   #byteAnim.idle{ animation:idle 1.2s ease-in-out infinite; }
@@ -449,13 +451,13 @@ async function nudge(footX, footY, dur){          // quick small move, keeps cur
   byteWrap.style.left=b.left+"%"; byteWrap.style.top=b.top+"%";
   await sleep(dur+20); byteWrap.style.transition="";
 }
-function moveByte(sprite, footX, footY){          // animated walk — Byte hops while moving
+function moveByte(sprite, footX, footY, lilt){     // animated walk — Byte hops while moving (lilt only when vertical)
   byte.src=SPRITE[sprite]; curSprite=sprite;
   const b=topLeftFor(sprite,footX,footY);
   byteWrap.style.width=b.w+"%";
-  byteAnim.classList.add("hop");
+  byteAnim.classList.add(lilt ? "hop" : "hop-flat");
   return new Promise(resolve=>{
-    let done=false; const fin=()=>{ if(done)return; done=true; byteAnim.classList.remove("hop"); byteWrap.removeEventListener("transitionend",fin); resolve(); };
+    let done=false; const fin=()=>{ if(done)return; done=true; byteAnim.classList.remove("hop","hop-flat"); byteWrap.removeEventListener("transitionend",fin); resolve(); };
     byteWrap.addEventListener("transitionend",fin); setTimeout(fin,3000);
     requestAnimationFrame(()=>{ byteWrap.style.left=b.left+"%"; byteWrap.style.top=b.top+"%"; });
   });
@@ -610,7 +612,7 @@ async function nextRound(){
   await sleep(700);
   const cf=feetOf(WP.cross);
   const st=setInterval(sfxStep,220);
-  await moveByte("back", cf.x, cf.y);          // drive up to the intersection
+  await moveByte("back", cf.x, cf.y, true);    // drive up to the intersection (lilting hop)
   clearInterval(st);
 
   travel("none");                               // reached intersection → escalator off
