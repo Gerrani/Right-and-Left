@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Byte's Delivery — Left &amp; Right</title>
+<style>
+  *{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;
+     font-family:"Comic Sans MS","Trebuchet MS",system-ui,sans-serif; }
+  html,body{ height:100%; overflow:hidden; background:#7bc043; }
+
+  #stage{ position:fixed; inset:0; overflow:hidden; }
+  .screen{ position:absolute; inset:0; }
+  .hide{ display:none !important; }
+  .full{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; user-select:none; }
+
+  /* GAME world mapped to a 1920x1080 frame, covering the viewport */
+  #world{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:max(100vw, 177.78vh); height:max(100vh, 56.25vw);
+  }
+  #bg{ width:100%; height:100%; display:block; user-select:none; pointer-events:none; }
+
+  /* moving walkway on the vertical path — glowing upward chevrons + centre light line */
+  #travelator{
+    position:absolute; left:calc(47% + 35px); top:55%; transform:translateX(-50%);
+    width:5%; height:45%; z-index:3; pointer-events:none; opacity:.45;
+    background:
+      url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='100'%20height='56'%20viewBox='0%200%20100%2056'%3E%3Cpath%20d='M50%206%20L86%2038%20L50%2024%20L14%2038%20Z'%20fill='%236f9e42'/%3E%3C/svg%3E");
+    background-repeat:repeat-y;
+    background-size:100% 56px;
+    -webkit-mask-image:linear-gradient(180deg, transparent 0%, #000 12%, #000 88%, transparent 100%);
+            mask-image:linear-gradient(180deg, transparent 0%, #000 12%, #000 88%, transparent 100%);
+    animation:travel 2.4s linear infinite;
+  }
+  @keyframes travel{ from{ background-position:0 0; } to{ background-position:0 -56px; } }
+
+  /* horizontal escalators on the left / right roads */
+  .travH{
+    position:absolute; top:48%; height:9%; z-index:3; pointer-events:none; opacity:.45;
+    background-repeat:repeat-x;
+    -webkit-mask-image:linear-gradient(90deg, transparent 0%, #000 12%, #000 88%, transparent 100%);
+            mask-image:linear-gradient(90deg, transparent 0%, #000 12%, #000 88%, transparent 100%);
+  }
+  #travLeft{ left:16%; width:30%; }
+  #travRight{ left:51%; width:30%; }
+  .travH.point-left{
+    background-image:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='56'%20height='100'%20viewBox='0%200%2056%20100'%3E%3Cpath%20d='M6%2050%20L38%2014%20L24%2050%20L38%2086%20Z'%20fill='%236f9e42'/%3E%3C/svg%3E");
+    background-size:56px 100%; animation:travL 2.4s linear infinite;
+  }
+  .travH.point-right{
+    background-image:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='56'%20height='100'%20viewBox='0%200%2056%20100'%3E%3Cpath%20d='M50%2050%20L18%2014%20L32%2050%20L18%2086%20Z'%20fill='%236f9e42'/%3E%3C/svg%3E");
+    background-size:56px 100%; animation:travR 2.4s linear infinite;
+  }
+  @keyframes travL{ from{ background-position:0 0; } to{ background-position:-56px 0; } }
+  @keyframes travR{ from{ background-position:0 0; } to{ background-position:56px 0; } }
+
+  /* Target glow + arrow */
+  .glow{
+    position:absolute; width:18%; aspect-ratio:1; transform:translate(-50%,-50%);
+    border-radius:50%; pointer-events:none; opacity:0; transition:opacity .3s;
+    background:radial-gradient(circle, rgba(255,238,120,.85) 0%, rgba(255,210,60,.35) 45%, rgba(255,210,60,0) 70%);
+    animation:pulse 1.1s ease-in-out infinite;
+  }
+  .glow.on{ opacity:1; }
+  #glowLeft{ left:14%; top:40%; }
+  #glowRight{ left:85%; top:38%; }
+  @keyframes pulse{ 0%,100%{ transform:translate(-50%,-50%) scale(.9);} 50%{ transform:translate(-50%,-50%) scale(1.12);} }
+  .arrow{
+    position:absolute; transform:translate(-50%,-50%); font-size:clamp(22px,4vw,52px);
+    pointer-events:none; opacity:0; transition:opacity .3s; filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));
+    animation:bob 0.8s ease-in-out infinite;
+  }
+  .arrow.on{ opacity:1; }
+  #arrowLeft{ left:14%; top:20%; }
+  #arrowRight{ left:85%; top:18%; }
+  @keyframes bob{ 0%,100%{ margin-top:0; } 50%{ margin-top:10px; } }
+
+  /* Byte — positioned by foot point, native size */
+  #byteWrap{ position:absolute; left:0; top:0; transition:left 2.6s linear, top 2.6s linear; z-index:5; }
+  #byteAnim{ width:100%; transition:transform .2s; }
+  #byteAnim.bump{ animation:bump .45s ease; }
+  @keyframes bump{ 0%,100%{ transform:rotate(0);} 25%{ transform:rotate(-8deg);} 75%{ transform:rotate(8deg);} }
+  #byteAnim.cheer{ animation:cheer .55s ease infinite; }
+  @keyframes cheer{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-12%);} }
+  #byteAnim.idle{ animation:idle 1.2s ease-in-out infinite; }
+  @keyframes idle{ 0%,100%{ transform:scale(1);} 50%{ transform:scale(.98);} }
+  #byte{ width:100%; height:auto; display:block; filter:drop-shadow(0 6px 6px rgba(0,0,0,.3)); }
+  #parcel{ position:absolute; z-index:4; pointer-events:none; filter:drop-shadow(0 4px 4px rgba(0,0,0,.3)); }
+
+  /* Speech bubble */
+  #bubble{
+    position:fixed; left:50%; top:3%; transform:translate(-50%,0) scale(0);
+    background:#fff; color:#234; padding:10px 22px; border-radius:30px;
+    font-size:clamp(15px,2.8vw,28px); font-weight:bold; max-width:90vw; text-align:center;
+    box-shadow:0 6px 14px rgba(0,0,0,.35); transition:transform .25s cubic-bezier(.3,1.6,.5,1);
+    border:3px solid #ffd23c; z-index:20;
+  }
+  #bubble.show{ transform:translate(-50%,0) scale(1); }
+
+  #score{
+    position:fixed; top:3%; left:3%; z-index:20;
+    background:#fff; color:#1d7fb8; font-weight:bold; padding:8px 18px; border-radius:40px;
+    font-size:clamp(16px,3vw,26px); box-shadow:0 4px 0 rgba(0,0,0,.2);
+  }
+
+  /* Buttons on the garden */
+  .dir-btn, #bigBtn, #againBtn{
+    position:fixed; z-index:20; border:none; cursor:pointer;
+    color:#fff; font-weight:bold; font-size:clamp(20px,3.6vw,36px); text-shadow:0 2px 2px rgba(0,0,0,.4);
+    padding:.5em 1.05em; border-radius:999px; display:flex; align-items:center; gap:.4em;
+    transition:transform .08s, box-shadow .08s, opacity .2s;
+  }
+  .dir-btn{ bottom:7%; background:none; border:none; padding:0; width:clamp(140px,17vw,290px); }
+  .dir-btn img{ width:100%; height:auto; display:block; filter:drop-shadow(0 6px 10px rgba(0,0,0,.4)); }
+  #leftBtn{ right:calc(54% + 50px); }
+  #rightBtn{ left:54%; }
+  .dir-btn{ opacity:1; transition:transform .08s, opacity .35s; }
+  .dir-btn:hover{ transform:scale(.97); }
+  .dir-btn:active{ transform:scale(.95); }
+  .dir-btn:disabled{ opacity:0; pointer-events:none; }
+
+  #bigBtn, #againBtn{
+    bottom:7%; left:50%; transform:translateX(-50%);
+    background:linear-gradient(#ffd95a 0%,#ffb524 100%); color:#7a4a00; text-shadow:0 1px 0 rgba(255,255,255,.5);
+    box-shadow: inset 0 3px 0 rgba(255,255,255,.7), 0 7px 0 #c47e00, 0 12px 20px rgba(0,0,0,.4);
+    border:3px solid rgba(255,255,255,.55);
+  }
+  #bigBtn:active, #againBtn:active{ transform:translateX(-50%) translateY(5px); box-shadow:inset 0 3px 0 rgba(255,255,255,.7), 0 2px 0 #c47e00, 0 5px 10px rgba(0,0,0,.4); }
+
+  #btnOverlay{ position:fixed; left:0; right:0; bottom:0; height:30%; z-index:18; pointer-events:none;
+    background:linear-gradient(0deg, rgba(0,0,0,.6) 0%, rgba(0,0,0,.25) 45%, rgba(0,0,0,0) 100%);
+    opacity:0; transition:opacity .4s; }
+  #btnOverlay.show{ opacity:1; }
+  #banner{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; z-index:15; }
+  #bannerText{ font-size:clamp(40px,11vw,120px); font-weight:900; opacity:0; transform:scale(.4);
+    transition:transform .35s cubic-bezier(.3,1.7,.5,1), opacity .35s; text-shadow:0 5px 0 rgba(0,0,0,.3); }
+  #bannerText.show{ opacity:1; transform:scale(1); }
+  .confetti{ position:fixed; width:11px; height:17px; top:-25px; border-radius:2px; z-index:14; pointer-events:none; }
+
+  #endScore{
+    position:absolute; left:50%; top:14%; transform:translateX(-50%);
+    background:rgba(255,255,255,.92); color:#1d7fb8; font-weight:bold;
+    padding:10px 30px; border-radius:40px; font-size:clamp(20px,4vw,40px); box-shadow:0 6px 0 rgba(0,0,0,.2); z-index:20;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+
+    <!-- START SCREEN -->
+    <div id="startScreen" class="screen" style="cursor:pointer">
+      <img class="full" src="Assets/Start.webp" alt="Start" />
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="gameScreen" class="screen hide">
+      <div id="world">
+        <img id="bg" src="Assets/Background.webp" alt="map" />
+        <div id="glowLeft"  class="glow"></div>
+        <div id="glowRight" class="glow"></div>
+        <div id="arrowLeft"  class="arrow">⬇️</div>
+        <div id="arrowRight" class="arrow">⬇️</div>
+        <div id="travelator" class="hide"></div>
+        <div id="travLeft"  class="travH hide"></div>
+        <div id="travRight" class="travH hide"></div>
+        <div id="byteWrap"><div id="byteAnim"><img id="byte" src="Assets/Byte%20Back.png" alt="Byte" /></div></div>
+        <img id="parcel" src="Assets/Parcel.png" alt="parcel" class="hide" />
+      </div>
+      <div id="score">⭐ 0</div>
+      <div id="bubble"></div>
+      <div id="btnOverlay"></div>
+      <button id="leftBtn"  class="dir-btn" disabled><img src="Assets/Left%20Button.png" alt="Left"></button>
+      <button id="rightBtn" class="dir-btn" disabled><img src="Assets/Right%20Button.png" alt="Right"></button>
+      <button id="bigBtn" class="hide">Next ▶</button>
+      <div id="banner"><div id="bannerText"></div></div>
+    </div>
+
+    <!-- END SCREEN -->
+    <div id="endScreen" class="screen hide">
+      <img class="full" src="Assets/End.webp" alt="Well done" />
+      <div id="endScore">⭐ 0</div>
+      <button id="againBtn">▶ Play Again</button>
+    </div>
+
+  </div>
+
+<script>
+/* ===================== Frame, sprites, anchors ===================== */
+const FRAME = { W:1920, H:1080 };
+const SPRITE = {
+  back:        "Assets/Byte%20Back.png",
+  left:        "Assets/Byte%20Left.png",
+  leftParcel:  "Assets/Byte%20Left%20with%20Parcel.png",
+  right:       "Assets/Byte%20Right.png",
+  rightParcel: "Assets/Byte%20Right%20with%20Parcel.png",
+};
+const NATIVE = {  // native px size of each sprite
+  back:[251,236], left:[201,242], leftParcel:[201,242], right:[201,242], rightParcel:[201,242],
+};
+const ANCHOR = {  // foot point inside each sprite [centerX%, bottomY%] — measured from the art
+  back:[0.54,0.754], left:[0.53,0.74], leftParcel:[0.53,0.74], right:[0.47,0.74], rightParcel:[0.47,0.74],
+};
+
+/* ---------------------------------------------------------------
+   WAYPOINTS — Figma TOP-LEFT coordinates (px on a 1920x1080 frame).
+   Paste your exact Figma x/y here; each sprite is drawn at native size,
+   and Byte's FOOT point is kept on the path so sprites line up perfectly.
+   --------------------------------------------------------------- */
+const WP = {
+  start:      { sprite:"back",  x:764.04, y:845 },   // ← your Figma value (-20px left)
+  cross:      { sprite:"back",  x:764,    y:401 },   // intersection (travels 50px further up)
+  leftHouse:  { sprite:"left",  x:181,    y:426 },   // blue house
+  rightHouse: { sprite:"right", x:1437,   y:426 },   // orange house (stops 80px before)
+};
+/* foot point (frame px) for a waypoint = top-left + anchor*native */
+function feetOf(wp){ const [w,h]=NATIVE[wp.sprite], [ax,ay]=ANCHOR[wp.sprite]; return { x:wp.x+ax*w, y:wp.y+ay*h }; }
+
+/* ===================== Elements ===================== */
+const $=id=>document.getElementById(id);
+const startScreen=$("startScreen"), gameScreen=$("gameScreen"), endScreen=$("endScreen");
+const byteWrap=$("byteWrap"), byteAnim=$("byteAnim"), byte=$("byte");
+const bubble=$("bubble"), leftBtn=$("leftBtn"), rightBtn=$("rightBtn"), bigBtn=$("bigBtn");
+const againBtn=$("againBtn"), scoreEl=$("score"), endScoreEl=$("endScore"), bannerText=$("bannerText");
+const parcel=$("parcel");
+const glow={ left:$("glowLeft"), right:$("glowRight") };
+function showParcel(isLeft, feet){            // drop the parcel by the door
+  const w=83, h=76, cx=feet.x + (isLeft ? -120 : 120);   // well in front of Byte, by the door
+  parcel.style.width=(w/FRAME.W*100)+"%";
+  parcel.style.left=((cx-w/2)/FRAME.W*100)+"%";
+  parcel.style.top=((feet.y-h)/FRAME.H*100)+"%";
+  parcel.classList.remove("hide");
+}
+function hideParcel(){ parcel.classList.add("hide"); }
+const arrow={ left:$("arrowLeft"), right:$("arrowRight") };
+const travUp=$("travelator"), travLeft=$("travLeft"), travRight=$("travRight");
+function setDir(el, dir){  // 'left' or 'right' — arrow shape + flow direction
+  el.classList.toggle("point-left",  dir==="left");
+  el.classList.toggle("point-right", dir==="right");
+}
+function travel(which){  // 'up' | 'left' | 'right' | 'left-back' | 'right-back' | 'none' — only ON while moving
+  travUp.classList.toggle("hide", which!=="up");
+  const showL = which==="left" || which==="left-back";
+  const showR = which==="right" || which==="right-back";
+  travLeft.classList.toggle("hide", !showL);
+  travRight.classList.toggle("hide", !showR);
+  if(which==="left")       setDir(travLeft,"left");
+  else if(which==="left-back")  setDir(travLeft,"right");
+  if(which==="right")      setDir(travRight,"right");
+  else if(which==="right-back") setDir(travRight,"left");
+}
+
+/* ===================== Config + state ===================== */
+const TOTAL_ROUNDS=5, TUTORIAL_ROUNDS=2;
+let target="left", score=0, round=0, busy=false, lookTimer=[];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* ===================== Byte placement (foot-anchored) ===================== */
+function topLeftFor(sprite, footX, footY){
+  const [w,h]=NATIVE[sprite], [ax,ay]=ANCHOR[sprite];
+  return { left:(footX-ax*w)/FRAME.W*100, top:(footY-ay*h)/FRAME.H*100, w:w/FRAME.W*100 };
+}
+function setByte(sprite, footX, footY){           // instant placement
+  byte.src=SPRITE[sprite];
+  const b=topLeftFor(sprite,footX,footY);
+  byteWrap.style.transition="none";
+  byteWrap.style.width=b.w+"%"; byteWrap.style.left=b.left+"%"; byteWrap.style.top=b.top+"%";
+  byteWrap.offsetHeight; byteWrap.style.transition="";
+}
+function moveByte(sprite, footX, footY){          // animated walk
+  byte.src=SPRITE[sprite];
+  const b=topLeftFor(sprite,footX,footY);
+  byteWrap.style.width=b.w+"%";
+  return new Promise(resolve=>{
+    let done=false; const fin=()=>{ if(done)return; done=true; byteWrap.removeEventListener("transitionend",fin); resolve(); };
+    byteWrap.addEventListener("transitionend",fin); setTimeout(fin,3000);
+    requestAnimationFrame(()=>{ byteWrap.style.left=b.left+"%"; byteWrap.style.top=b.top+"%"; });
+  });
+}
+
+/* ===================== Look both ways ===================== */
+async function lookBothWays(){          // runs to completion BEFORE the buttons appear
+  const f=feetOf(WP.cross);
+  setByte("back",  f.x, f.y); await sleep(1000);   // settle at the centre
+  setByte("right", f.x, f.y); await sleep(1000);   // look right
+  setByte("back",  f.x, f.y); await sleep(1000);   // back to centre
+  setByte("left",  f.x, f.y); await sleep(1000);   // look left
+  setByte("back",  f.x, f.y); await sleep(1000);   // back to centre
+  byteAnim.classList.add("idle");                  // then start the idle pulse
+}
+function stopLook(){ byteAnim.classList.remove("idle"); }
+
+const TOP_ROAD_X = 1485;                 // x of the vertical road that exits the top (≈77% of 1920)
+async function exitFrame(isLeft){        // after a correct delivery, Byte walks off-frame
+  byteAnim.classList.remove("idle");
+  const cf=feetOf(WP.cross);
+  const st=setInterval(sfxStep,200);
+  if(isLeft){
+    await moveByte("left", -260, cf.y);          // keep going left, off the left edge
+  } else {
+    await moveByte("left", TOP_ROAD_X, cf.y);    // step onto the top road
+    setByte("back", TOP_ROAD_X, cf.y);
+    await moveByte("back", TOP_ROAD_X, -320);    // walk up, off the top edge
+  }
+  clearInterval(st);
+}
+
+/* ===================== UI helpers ===================== */
+function say(t){ bubble.textContent=t; bubble.classList.add("show"); }
+function hideBubble(){ bubble.classList.remove("show"); }
+function showButtons(s){ leftBtn.disabled=rightBtn.disabled=!s; $("btnOverlay").classList.toggle("show",s); }
+function highlightTarget(on, showArrow){
+  glow.left.classList.toggle("on",  on&&target==="left");
+  glow.right.classList.toggle("on", on&&target==="right");
+  arrow.left.classList.toggle("on",  on&&showArrow&&target==="left");
+  arrow.right.classList.toggle("on", on&&showArrow&&target==="right");
+}
+
+/* ---------- Sound + speech ---------- */
+let actx;
+function tone(f,s,d,t="sine",v=0.2){ if(!actx)return; const o=actx.createOscillator(),g=actx.createGain();
+  o.type=t;o.frequency.value=f;o.connect(g);g.connect(actx.destination); const x=actx.currentTime+s;
+  g.gain.setValueAtTime(0,x);g.gain.linearRampToValueAtTime(v,x+.02);g.gain.exponentialRampToValueAtTime(.001,x+d);o.start(x);o.stop(x+d+.05); }
+function sfxWin(){ [523,659,784,1046].forEach((f,i)=>tone(f,i*.12,.25,"triangle",.25)); }
+function sfxFail(){ tone(330,0,.18,"sawtooth",.2); tone(220,.16,.3,"sawtooth",.2); }
+function sfxStep(){ tone(700,0,.06,"square",.05); }
+function speak(t){ try{ if(!("speechSynthesis"in window))return; speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(t); u.rate=.95; u.pitch=1.2; speechSynthesis.speak(u);}catch(e){} }
+
+function confetti(){
+  const colors=["#ff6a3d","#23a76a","#ffce3a","#2bb3e0","#e84393","#fff"];
+  for(let i=0;i<70;i++){ const c=document.createElement("div"); c.className="confetti";
+    c.style.left=Math.random()*100+"%"; c.style.background=colors[i%colors.length];
+    const fall=1000+Math.random()*1000; c.style.transition=`transform ${fall}ms linear, opacity ${fall}ms`;
+    gameScreen.appendChild(c);
+    requestAnimationFrame(()=>{ c.style.transform=`translateY(${window.innerHeight+50}px) rotate(${Math.random()*720}deg)`; c.style.opacity=.2; });
+    setTimeout(()=>c.remove(), fall+100);
+  }
+}
+function banner(t,c){ bannerText.textContent=t; bannerText.style.color=c; bannerText.classList.add("show"); setTimeout(()=>bannerText.classList.remove("show"),1600); }
+
+/* ===================== Game flow ===================== */
+function startGame(){
+  score=0; round=0; scoreEl.textContent="⭐ 0";
+  startScreen.classList.add("hide"); endScreen.classList.add("hide"); gameScreen.classList.remove("hide");
+  nextRound();
+}
+
+async function nextRound(){
+  round++;
+  busy=true; stopLook(); showButtons(false); hideBubble(); highlightTarget(false); hideParcel(); bigBtn.classList.add("hide");
+  const tutorial = round<=TUTORIAL_ROUNDS;
+  target = Math.random()<0.5 ? "left" : "right";
+
+  const sf=feetOf(WP.start);
+  setByte("back", sf.x, sf.y);
+  travel("up");                                 // vertical escalator while driving up
+  await sleep(150);
+
+  const houseColor = target==="left" ? "BLUE" : "ORANGE";
+  say("Take the parcel to the "+houseColor+" house! 📦");
+  speak("Take the parcel to the "+houseColor+" house");
+
+  await sleep(700);
+  const cf=feetOf(WP.cross);
+  const st=setInterval(sfxStep,220);
+  await moveByte("back", cf.x, cf.y);          // drive up to the intersection
+  clearInterval(st);
+
+  travel("none");                               // reached intersection → escalator off
+  await sleep(400);                             // settle a beat after arriving
+  await lookBothWays();                         // complete the look BEFORE buttons appear
+  say("Which way should Byte turn?");
+  if(tutorial) speak("Which way? Left or right?");
+  showButtons(true); busy=false;
+}
+
+async function choose(side){
+  if(busy)return; busy=true; stopLook();
+  showButtons(false); hideBubble(); highlightTarget(false);
+
+  const isLeft = side==="left";
+  const moveSprite   = isLeft ? "left" : "right";
+  const parcelSprite = isLeft ? "leftParcel" : "rightParcel";
+  const houseWp      = isLeft ? WP.leftHouse : WP.rightHouse;
+  const cf=feetOf(WP.cross), hf=feetOf(houseWp);
+  hf.y = cf.y;                                 // keep feet on the same road line (no vertical drift)
+
+  setByte(moveSprite, cf.x, cf.y);             // face the chosen way at the crossing
+  await sleep(350);
+  travel(isLeft ? "left" : "right");           // escalator on, in the travel direction
+  const st=setInterval(sfxStep,200);
+  await moveByte(moveSprite, hf.x, hf.y);       // walk to the house (Byte Left / Byte Right)
+  clearInterval(st);
+  travel("none");                               // reached the house → escalator off
+  setByte(parcelSprite, hf.x, hf.y);            // reached house → holding parcel
+
+  if(side===target){
+    await sleep(300);
+    showParcel(isLeft, hf);                     // place the parcel by the door
+    setByte(moveSprite, hf.x, hf.y);            // change Byte back to the normal (empty-handed) image
+    score++; scoreEl.textContent="⭐ "+score;
+    byteAnim.classList.add("cheer"); sfxWin(); confetti();
+    banner("YAY! 🎉","#ffe14d");
+    say("Parcel delivered! Great job! 🎉"); speak("Yay! Correct! Great job!");
+    await sleep(1700);
+    byteAnim.classList.remove("cheer");
+    await exitFrame(isLeft);                     // walk off-frame after delivering
+    if(score>=TOTAL_ROUNDS){ endGame(); busy=false; return; }
+    bigBtn.textContent="Next ▶"; bigBtn.classList.remove("hide"); busy=false;
+  } else {
+    byteAnim.classList.add("bump"); sfxFail();
+    banner("Oh no! 🚫","#ff5b5b");
+    const word = target==="left" ? "BLUE" : "ORANGE";
+    say("Oops! Wrong house. The parcel goes to the "+word+" house! Try again.");
+    speak("Oops! Wrong house. Try again.");
+    await sleep(1700);
+    byteAnim.classList.remove("bump");
+    const backSprite = isLeft ? "right" : "left";   // face back toward the centre
+    setByte(backSprite, hf.x, hf.y);
+    await sleep(250);
+    travel(isLeft ? "left-back" : "right-back");     // escalator on, reversed to match the return
+    const t2=setInterval(sfxStep,200);
+    await moveByte(backSprite, cf.x, cf.y);          // walk back to the intersection
+    clearInterval(t2);
+    travel("none");                                  // back at the crossing → escalator off
+    setByte("back", cf.x, cf.y); byteAnim.classList.add("idle"); // no re-look on retry
+    say("Try again! The "+word+" house!");
+    showButtons(true); busy=false;
+  }
+}
+
+function endGame(){
+  stopLook(); travel("none");
+  gameScreen.classList.add("hide");
+  endScoreEl.textContent="⭐ "+score+" delivered!";
+  endScreen.classList.remove("hide");
+  sfxWin(); speak("Amazing! You delivered all the parcels!");
+}
+
+/* ===================== Controls ===================== */
+function ensureAudio(){ try{ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==="suspended") actx.resume(); }catch(e){} }
+startScreen.addEventListener("click", ()=>{ ensureAudio(); startGame(); });
+bigBtn.addEventListener("click",  ()=>{ ensureAudio(); nextRound(); });
+againBtn.addEventListener("click",()=>{ ensureAudio(); startGame(); });
+leftBtn.addEventListener("click", ()=>{ ensureAudio(); choose("left"); });
+rightBtn.addEventListener("click",()=>{ ensureAudio(); choose("right"); });
+document.addEventListener("keydown", e=>{
+  if(e.key==="ArrowLeft"  && !leftBtn.disabled)  choose("left");
+  if(e.key==="ArrowRight" && !rightBtn.disabled) choose("right");
+});
+
+/* initial placement */
+(function(){ const sf=feetOf(WP.start); setByte("back", sf.x, sf.y); })();
+</script>
+</body>
+</html>
