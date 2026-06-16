@@ -4,10 +4,13 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>Byte's Delivery — Left &amp; Right</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   *{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;
-     font-family:"Comic Sans MS","Trebuchet MS",system-ui,sans-serif; }
+     font-family:"Poppins","Trebuchet MS",system-ui,sans-serif; }
   html,body{ height:100%; overflow:hidden; background:#7bc043; }
+  :root{ --btn-h: clamp(64px, 9vh, 92px); }   /* shared height for all SVG buttons (native 92px) */
 
   #stage{ position:fixed; inset:0; overflow:hidden; }
   .screen{ position:absolute; inset:0; }
@@ -20,13 +23,20 @@
     width:max(100vw, 177.78vh); height:max(100vh, 56.25vw);
   }
   #bg{ width:100%; height:100%; display:block; user-select:none; pointer-events:none; }
+  .house{ position:absolute; width:13.33%; height:auto; z-index:2; pointer-events:none; transform-origin:bottom center; }
+  .house.barking{ animation:dogBark .28s ease-in-out infinite; }
+  #houseLeft{ left:5.06%; top:28.61%; }
+  #houseRight{ left:85.51%; top:28.61%; transform:scaleX(-1); }   /* mirror the right house */
+  #houseRight.barking{ animation:dogBarkFlip .28s ease-in-out infinite; }
+  @keyframes dogBarkFlip{ 0%,100%{ transform:scaleX(-1); } 45%{ transform:scaleX(-1) scale(1.08,.93); } }
 
   /* moving walkway on the vertical path — glowing upward chevrons + centre light line */
   #travelator{
     position:absolute; left:calc(47% + 35px); top:55%; transform:translateX(-50%);
-    width:5%; height:45%; z-index:3; pointer-events:none; opacity:.45;
+    width:5%; height:45%; z-index:3; pointer-events:none; opacity:.7;
+    filter:drop-shadow(0 0 5px rgba(53,208,236,.85));
     background:
-      url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='100'%20height='56'%20viewBox='0%200%20100%2056'%3E%3Cpath%20d='M50%206%20L86%2038%20L50%2024%20L14%2038%20Z'%20fill='%236f9e42'/%3E%3C/svg%3E");
+      url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='100'%20height='56'%20viewBox='0%200%20100%2056'%3E%3Cpath%20d='M50%206%20L86%2038%20L50%2024%20L14%2038%20Z'%20fill='%2335d0ec'/%3E%3C/svg%3E");
     background-repeat:repeat-y;
     background-size:100% 56px;
     -webkit-mask-image:linear-gradient(180deg, transparent 0%, #000 12%, #000 88%, transparent 100%);
@@ -37,7 +47,8 @@
 
   /* horizontal escalators on the left / right roads */
   .travH{
-    position:absolute; top:48%; height:9%; z-index:3; pointer-events:none; opacity:.45;
+    position:absolute; top:48%; height:9%; z-index:3; pointer-events:none; opacity:.7;
+    filter:drop-shadow(0 0 5px rgba(53,208,236,.85));
     background-repeat:repeat-x;
     -webkit-mask-image:linear-gradient(90deg, transparent 0%, #000 12%, #000 88%, transparent 100%);
             mask-image:linear-gradient(90deg, transparent 0%, #000 12%, #000 88%, transparent 100%);
@@ -45,11 +56,11 @@
   #travLeft{ left:16%; width:30%; }
   #travRight{ left:51%; width:30%; }
   .travH.point-left{
-    background-image:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='56'%20height='100'%20viewBox='0%200%2056%20100'%3E%3Cpath%20d='M6%2050%20L38%2014%20L24%2050%20L38%2086%20Z'%20fill='%236f9e42'/%3E%3C/svg%3E");
+    background-image:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='56'%20height='100'%20viewBox='0%200%2056%20100'%3E%3Cpath%20d='M6%2050%20L38%2014%20L24%2050%20L38%2086%20Z'%20fill='%2335d0ec'/%3E%3C/svg%3E");
     background-size:56px 100%; animation:travL 2.4s linear infinite;
   }
   .travH.point-right{
-    background-image:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='56'%20height='100'%20viewBox='0%200%2056%20100'%3E%3Cpath%20d='M50%2050%20L18%2014%20L32%2050%20L18%2086%20Z'%20fill='%236f9e42'/%3E%3C/svg%3E");
+    background-image:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='56'%20height='100'%20viewBox='0%200%2056%20100'%3E%3Cpath%20d='M50%2050%20L18%2014%20L32%2050%20L18%2086%20Z'%20fill='%2335d0ec'/%3E%3C/svg%3E");
     background-size:56px 100%; animation:travR 2.4s linear infinite;
   }
   @keyframes travL{ from{ background-position:0 0; } to{ background-position:-56px 0; } }
@@ -79,54 +90,124 @@
   /* Byte — positioned by foot point, native size */
   #byteWrap{ position:absolute; left:0; top:0; transition:left 2.6s linear, top 2.6s linear; z-index:5; }
   #byteAnim{ width:100%; transition:transform .2s; }
-  #byteAnim.bump{ animation:bump .45s ease; }
-  @keyframes bump{ 0%,100%{ transform:rotate(0);} 25%{ transform:rotate(-8deg);} 75%{ transform:rotate(8deg);} }
+  #byteAnim.bump{ animation:bump .7s ease-in-out; }
+  @keyframes bump{ 0%,100%{ transform:rotate(0);} 15%{ transform:rotate(-5deg);} 35%{ transform:rotate(4deg);} 55%{ transform:rotate(-3deg);} 75%{ transform:rotate(2deg);} }
+  #byteAnim.hop{ animation:hop .84s ease-in-out infinite; transform-origin:50% 80%; }
+  @keyframes hop{
+    0%  { transform:translateY(0) rotate(-6deg); }   /* land, tilted one way */
+    25% { transform:translateY(-15%) rotate(0deg); } /* peak, upright */
+    50% { transform:translateY(0) rotate(6deg); }    /* land, tilted the other way */
+    75% { transform:translateY(-15%) rotate(0deg); } /* peak, upright */
+    100%{ transform:translateY(0) rotate(-6deg); }   /* back to the first tilt */
+  }
   #byteAnim.cheer{ animation:cheer .55s ease infinite; }
   @keyframes cheer{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-12%);} }
   #byteAnim.idle{ animation:idle 1.2s ease-in-out infinite; }
   @keyframes idle{ 0%,100%{ transform:scale(1);} 50%{ transform:scale(.98);} }
   #byte{ width:100%; height:auto; display:block; filter:drop-shadow(0 6px 6px rgba(0,0,0,.3)); }
   #parcel{ position:absolute; z-index:4; pointer-events:none; filter:drop-shadow(0 4px 4px rgba(0,0,0,.3)); }
+  #dog{ position:absolute; z-index:6; pointer-events:none; filter:drop-shadow(0 5px 5px rgba(0,0,0,.35)); transform-origin:bottom center; }
+
+  /* house scan effect */
+  #scanBox{ position:absolute; z-index:7; pointer-events:none; opacity:0; transition:opacity .25s;
+    border:3px solid rgba(60,210,240,.9); border-radius:12px; overflow:hidden;
+    box-shadow:0 0 16px rgba(60,210,240,.6), inset 0 0 22px rgba(60,210,240,.22); }
+  #scanBox.on{ opacity:1; }
+  #scanBox.ok{ border-color:rgba(70,220,120,.95); box-shadow:0 0 22px rgba(70,220,120,.75), inset 0 0 26px rgba(70,220,120,.32); }
+  #scanBox.bad{ border-color:rgba(255,90,90,.95); box-shadow:0 0 22px rgba(255,90,90,.75), inset 0 0 26px rgba(255,90,90,.32); }
+  #scanLine{ position:absolute; left:0; right:0; height:16%; top:-16%;
+    background:linear-gradient(180deg, transparent, rgba(160,246,255,.95), transparent);
+    box-shadow:0 0 14px rgba(160,246,255,.9); }
+  #scanBox.on #scanLine{ animation:scanSweep .9s ease-in-out; }
+  @keyframes scanSweep{ 0%{ top:-16%; } 100%{ top:100%; } }
+  /* speech bubble above Byte's head while he looks */
+  #headPop{
+    position:absolute; left:46.9%; top:27%; transform:translate(-50%,10px) scale(.4); transform-origin:bottom center;
+    opacity:0; z-index:9; pointer-events:none; white-space:nowrap;
+    background:#fff; border-radius:18px; padding:8px 24px;
+    font-family:"Poppins",sans-serif; font-weight:500; font-size:clamp(16px,2.2vw,26px); color:#111111;
+    box-shadow:0 10px 26px rgba(0,0,0,.28);
+    transition:transform .25s cubic-bezier(.34,1.7,.5,1), opacity .2s;
+  }
+  #headPop.show{ transform:translate(-50%,0) scale(1); opacity:1; }
+  #headPop::after{ content:""; position:absolute; left:50%; bottom:-13px; transform:translateX(-50%);
+    border-left:11px solid transparent; border-right:11px solid transparent; border-top:14px solid #fff; }
+  #headPop.side-left::after{ left:78%; }    /* tail points down-right toward Byte */
+  #headPop.side-right::after{ left:22%; }   /* tail points down-left toward Byte */
+  #dog.barking{ animation:dogBark .28s ease-in-out infinite; }
+  @keyframes dogBark{ 0%,100%{ transform:scale(1,1); } 45%{ transform:scale(1.08,.93); } }
 
   /* Speech bubble */
   #bubble{
-    position:fixed; left:50%; top:3%; transform:translate(-50%,0) scale(0);
-    background:#fff; color:#234; padding:10px 22px; border-radius:30px;
-    font-size:clamp(15px,2.8vw,28px); font-weight:bold; max-width:90vw; text-align:center;
-    box-shadow:0 6px 14px rgba(0,0,0,.35); transition:transform .25s cubic-bezier(.3,1.6,.5,1);
-    border:3px solid #ffd23c; z-index:20;
+    position:fixed; left:50%; top:16px; transform:translate(-50%,0) scale(0);
+    background:#fff; color:#1d2433;
+    width:fit-content; max-width:90vw; min-height:88px; box-sizing:border-box;
+    padding:0 48px; display:flex; align-items:center; justify-content:center;
+    border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,.10), 0 18px 40px rgba(0,0,0,.22);
+    font-family:"Poppins",sans-serif; font-size:32px; font-weight:500; line-height:1.2; text-align:center;
+    transition:transform .28s cubic-bezier(.34,1.56,.64,1); z-index:20;
   }
   #bubble.show{ transform:translate(-50%,0) scale(1); }
+  #bubbleText{ font-family:"Poppins",sans-serif; font-weight:500; }
+
+  /* success overlay + flying parcel */
+  #successOverlay{ position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.4); opacity:0; transition:opacity .35s; pointer-events:none; }
+  #successOverlay.show{ opacity:1; }
+  #successCard{ background:#fff; border-radius:28px; padding:34px 56px; text-align:center;
+    box-shadow:0 24px 60px rgba(0,0,0,.4); transform:scale(.5); transition:transform .45s cubic-bezier(.34,1.7,.5,1);
+    font-family:"Poppins",sans-serif; }
+  #successOverlay.show #successCard{ transform:scale(1); }
+  #successCard img{ width:96px; height:auto; display:block; margin:0 auto 14px; filter:drop-shadow(0 6px 8px rgba(0,0,0,.25)); }
+  #successTitle{ font-size:42px; font-weight:600; color:#23a76a; }
+  #successSub{ font-size:26px; font-weight:500; color:#1d2433; margin-top:8px; }
+  #flyParcel{ position:fixed; width:70px; height:auto; z-index:40; pointer-events:none; opacity:0; left:0; top:0; }
+  #score.pop{ animation:scorePop .45s ease; }
+  @keyframes scorePop{ 0%,100%{ transform:scale(1); } 40%{ transform:scale(1.35); } }
 
   #score{
     position:fixed; top:3%; left:3%; z-index:20;
     background:#fff; color:#1d7fb8; font-weight:bold; padding:8px 18px; border-radius:40px;
     font-size:clamp(16px,3vw,26px); box-shadow:0 4px 0 rgba(0,0,0,.2);
+    display:flex; align-items:center; gap:.3em;
   }
+  #score img, #endScore img{ height:1.4em; width:auto; vertical-align:middle; }
 
-  /* Buttons on the garden */
-  .dir-btn, #bigBtn, #againBtn{
-    position:fixed; z-index:20; border:none; cursor:pointer;
-    color:#fff; font-weight:bold; font-size:clamp(20px,3.6vw,36px); text-shadow:0 2px 2px rgba(0,0,0,.4);
-    padding:.5em 1.05em; border-radius:999px; display:flex; align-items:center; gap:.4em;
-    transition:transform .08s, box-shadow .08s, opacity .2s;
+  /* ===== Pill buttons (blue glossy, white border, circular badge) ===== */
+  .pill{
+    position:fixed; z-index:20; cursor:pointer; border:none; box-sizing:border-box;
+    display:inline-flex; align-items:center; gap:.5em; padding:0 .85em;
+    height:var(--btn-h); border-radius:999px; white-space:nowrap;
+    color:#fff; font-family:"Poppins",sans-serif; font-weight:800; text-transform:uppercase;
+    font-size:calc(var(--btn-h) * 0.39); letter-spacing:.03em;
+    background:linear-gradient(#62c8f0 0%, #36a9e4 48%, #1f93d6 78%, #1887cc 100%);
+    border:0.16em solid #ffffff;
+    box-shadow:
+      0 0 0 0.1em #2877ad,
+      0 0.26em 0 #1670ab,
+      0 0.5em 0.6em rgba(0,0,0,.3),
+      inset 0 0.32em 0.25em rgba(255,255,255,.5),
+      inset 0 -0.3em 0.25em rgba(0,0,0,.14);
+    text-shadow:0 0.06em 0 rgba(8,72,120,.6), 0 0.1em 0.18em rgba(0,0,0,.3);
+    transition:transform .18s cubic-bezier(.34,1.7,.5,1), opacity .3s;
   }
-  .dir-btn{ bottom:7%; background:none; border:none; padding:0; width:clamp(140px,17vw,290px); }
-  .dir-btn img{ width:100%; height:auto; display:block; filter:drop-shadow(0 6px 10px rgba(0,0,0,.4)); }
-  #leftBtn{ right:calc(54% + 50px); }
-  #rightBtn{ left:54%; }
-  .dir-btn{ opacity:1; transition:transform .08s, opacity .35s; }
-  .dir-btn:hover{ transform:scale(.97); }
-  .dir-btn:active{ transform:scale(.95); }
-  .dir-btn:disabled{ opacity:0; pointer-events:none; }
-
-  #bigBtn, #againBtn{
-    bottom:7%; left:50%; transform:translateX(-50%);
-    background:linear-gradient(#ffd95a 0%,#ffb524 100%); color:#7a4a00; text-shadow:0 1px 0 rgba(255,255,255,.5);
-    box-shadow: inset 0 3px 0 rgba(255,255,255,.7), 0 7px 0 #c47e00, 0 12px 20px rgba(0,0,0,.4);
-    border:3px solid rgba(255,255,255,.55);
+  .pill .badge{
+    flex:0 0 auto; width:1.9em; height:1.9em; border-radius:50%;
+    background:none; border:0.15em solid #ffffff; box-shadow:none;
+    display:flex; align-items:center; justify-content:center;
   }
-  #bigBtn:active, #againBtn:active{ transform:translateX(-50%) translateY(5px); box-shadow:inset 0 3px 0 rgba(255,255,255,.7), 0 2px 0 #c47e00, 0 5px 10px rgba(0,0,0,.4); }
+  .pill .badge svg{ width:76%; height:76%; display:block; }
+  .pill:hover{ transform:scale(1.06); }
+  .pill:active{ transform:scale(.93); }
+  .pill.center{ left:50%; transform:translateX(-50%); }
+  .pill.center:hover{ transform:translateX(-50%) scale(1.06); }
+  .pill.center:active{ transform:translateX(-50%) scale(.93); }
+  #leftBtn{ bottom:7%; right:calc(54% + 35px); }
+  #rightBtn{ bottom:7%; left:54%; }
+  #leftBtn, #rightBtn{ min-width:7.5em; justify-content:center; }   /* equal width, centred content */
+  #leftBtn:disabled, #rightBtn:disabled{ opacity:0; pointer-events:none; }
+  #bigBtn{ bottom:9%; }
+  #againBtn{ bottom:9%; }
 
   #btnOverlay{ position:fixed; left:0; right:0; bottom:0; height:30%; z-index:18; pointer-events:none;
     background:linear-gradient(0deg, rgba(0,0,0,.6) 0%, rgba(0,0,0,.25) 45%, rgba(0,0,0,0) 100%);
@@ -137,6 +218,8 @@
     transition:transform .35s cubic-bezier(.3,1.7,.5,1), opacity .35s; text-shadow:0 5px 0 rgba(0,0,0,.3); }
   #bannerText.show{ opacity:1; transform:scale(1); }
   .confetti{ position:fixed; width:11px; height:17px; top:-25px; border-radius:2px; z-index:14; pointer-events:none; }
+
+  #startBtn{ bottom:9%; }
 
   #endScore{
     position:absolute; left:50%; top:14%; transform:translateX(-50%);
@@ -149,14 +232,17 @@
   <div id="stage">
 
     <!-- START SCREEN -->
-    <div id="startScreen" class="screen" style="cursor:pointer">
+    <div id="startScreen" class="screen">
       <img class="full" src="Assets/Start.webp" alt="Start" />
+      <button id="startBtn" class="pill center"><span class="badge"><svg viewBox="0 0 24 24"><path d="M8 6.5L18 12L8 17.5Z" fill="#fff"/></svg></span>Get Started</button>
     </div>
 
     <!-- GAME SCREEN -->
     <div id="gameScreen" class="screen hide">
       <div id="world">
         <img id="bg" src="Assets/Background.webp" alt="map" />
+        <img id="houseLeft"  class="house" src="Assets/Blue%20House.png" alt="" />
+        <img id="houseRight" class="house" src="Assets/Red%20House.png" alt="" />
         <div id="glowLeft"  class="glow"></div>
         <div id="glowRight" class="glow"></div>
         <div id="arrowLeft"  class="arrow">⬇️</div>
@@ -166,21 +252,33 @@
         <div id="travRight" class="travH hide"></div>
         <div id="byteWrap"><div id="byteAnim"><img id="byte" src="Assets/Byte%20Back.png" alt="Byte" /></div></div>
         <img id="parcel" src="Assets/Parcel.png" alt="parcel" class="hide" />
+        <img id="dog" alt="dog" class="hide" />
+        <div id="scanBox"><div id="scanLine"></div></div>
+        <div id="headPop"></div>
       </div>
-      <div id="score">⭐ 0</div>
-      <div id="bubble"></div>
+      <div id="score"><img src="Assets/Parcel.png" alt="parcels"> 0</div>
+      <div id="bubble"><span id="bubbleText"></span></div>
       <div id="btnOverlay"></div>
-      <button id="leftBtn"  class="dir-btn" disabled><img src="Assets/Left%20Button.png" alt="Left"></button>
-      <button id="rightBtn" class="dir-btn" disabled><img src="Assets/Right%20Button.png" alt="Right"></button>
-      <button id="bigBtn" class="hide">Next ▶</button>
+      <button id="leftBtn" class="pill" disabled><span class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 12H7"/><path d="M11 7.2 6.2 12 11 16.8"/></svg></span>Left</button>
+      <button id="rightBtn" class="pill" disabled>Right<span class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 12H17"/><path d="M13 7.2 17.8 12 13 16.8"/></svg></span></button>
+      <button id="bigBtn" class="pill center hide">Next<span class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 12H17"/><path d="M13 7.2 17.8 12 13 16.8"/></svg></span></button>
       <div id="banner"><div id="bannerText"></div></div>
+
+      <div id="successOverlay">
+        <div id="successCard">
+          <img src="Assets/Parcel.png" alt="parcel" />
+          <div id="successTitle">Delivered! 🎉</div>
+          <div id="successSub"></div>
+        </div>
+      </div>
+      <img id="flyParcel" src="Assets/Parcel.png" alt="" />
     </div>
 
     <!-- END SCREEN -->
     <div id="endScreen" class="screen hide">
       <img class="full" src="Assets/End.webp" alt="Well done" />
-      <div id="endScore">⭐ 0</div>
-      <button id="againBtn">▶ Play Again</button>
+      <div id="endScore"><img src="Assets/Parcel.png" alt="parcels"> 0</div>
+      <button id="againBtn" class="pill center"><span class="badge"><svg viewBox="0 0 24 24"><path d="M8 6.5L18 12L8 17.5Z" fill="#fff"/></svg></span>Play Again</button>
     </div>
 
   </div>
@@ -211,7 +309,7 @@ const WP = {
   start:      { sprite:"back",  x:764.04, y:845 },   // ← your Figma value (-20px left)
   cross:      { sprite:"back",  x:764,    y:401 },   // intersection (travels 50px further up)
   leftHouse:  { sprite:"left",  x:181,    y:426 },   // blue house
-  rightHouse: { sprite:"right", x:1437,   y:426 },   // orange house (stops 80px before)
+  rightHouse: { sprite:"right", x:1537.5, y:426 },   // in front of the orange house (~85%)
 };
 /* foot point (frame px) for a waypoint = top-left + anchor*native */
 function feetOf(wp){ const [w,h]=NATIVE[wp.sprite], [ax,ay]=ANCHOR[wp.sprite]; return { x:wp.x+ax*w, y:wp.y+ay*h }; }
@@ -220,9 +318,43 @@ function feetOf(wp){ const [w,h]=NATIVE[wp.sprite], [ax,ay]=ANCHOR[wp.sprite]; r
 const $=id=>document.getElementById(id);
 const startScreen=$("startScreen"), gameScreen=$("gameScreen"), endScreen=$("endScreen");
 const byteWrap=$("byteWrap"), byteAnim=$("byteAnim"), byte=$("byte");
-const bubble=$("bubble"), leftBtn=$("leftBtn"), rightBtn=$("rightBtn"), bigBtn=$("bigBtn");
+const bubble=$("bubble"), bubbleText=$("bubbleText"), leftBtn=$("leftBtn"), rightBtn=$("rightBtn"), bigBtn=$("bigBtn");
 const againBtn=$("againBtn"), scoreEl=$("score"), endScoreEl=$("endScore"), bannerText=$("bannerText");
 const parcel=$("parcel");
+const overlay=$("successOverlay"), successCard=$("successCard"), successTitle=$("successTitle"), successSub=$("successSub"), flyParcel=$("flyParcel");
+function bumpScore(){ scoreEl.classList.remove("pop"); void scoreEl.offsetWidth; scoreEl.classList.add("pop"); }
+function flyParcelToScore(){            // animate a parcel from the card to the counter, then +1
+  return new Promise(res=>{
+    const cr=successCard.getBoundingClientRect(), sr=scoreEl.getBoundingClientRect();
+    flyParcel.style.transition="none";
+    flyParcel.style.left=(cr.left+cr.width/2-35)+"px";
+    flyParcel.style.top=(cr.top+cr.height/2-35)+"px";
+    flyParcel.style.transform="scale(1)"; flyParcel.style.opacity="1";
+    flyParcel.offsetHeight;
+    flyParcel.style.transition="left .65s cubic-bezier(.5,-.25,.6,1), top .65s cubic-bezier(.4,.1,.7,1), transform .65s, opacity .6s";
+    requestAnimationFrame(()=>{
+      flyParcel.style.left=(sr.left+sr.height*0.55)+"px";
+      flyParcel.style.top=(sr.top+sr.height/2-18)+"px";
+      flyParcel.style.transform="scale(.35)";
+    });
+    setTimeout(()=>{
+      flyParcel.style.opacity="0";
+      score++; scoreEl.innerHTML=PARCEL_ICON+" "+score; bumpScore();
+      res();
+    }, 680);
+  });
+}
+async function showSuccessOverlay(){
+  successTitle.textContent="Delivered! 🎉";
+  successSub.innerHTML="To the "+colorWord(targetColor)+" house";
+  overlay.classList.add("show");
+  speak("Delivered to the "+(target==="left"?"blue":"orange")+" house. Great job!");
+  await sleep(1300);
+  const fly=flyParcelToScore();        // parcel flies to the counter...
+  overlay.classList.remove("show");    // ...while the overlay fades away
+  await fly;
+  await sleep(200);
+}
 const glow={ left:$("glowLeft"), right:$("glowRight") };
 function showParcel(isLeft, feet){            // drop the parcel by the door
   const w=83, h=76, cx=feet.x + (isLeft ? -120 : 120);   // well in front of Byte, by the door
@@ -232,6 +364,49 @@ function showParcel(isLeft, feet){            // drop the parcel by the door
   parcel.classList.remove("hide");
 }
 function hideParcel(){ parcel.classList.add("hide"); }
+const dog=$("dog");
+function showDog(isLeft, feet){               // barking dog at the wrong house
+  dog.src = isLeft ? "Assets/Dog%20for%20left%20house.png" : "Assets/Dog%20for%20right%20house.png";
+  const w=187, h=147, cx=feet.x + (isLeft ? -175 : 175);  // beside Byte, facing him (clear of the parcel)
+  dog.style.width=(w/FRAME.W*100)+"%";
+  dog.style.left=((cx-w/2)/FRAME.W*100)+"%";
+  dog.style.top=((feet.y-h)/FRAME.H*100)+"%";
+  dog.classList.remove("hide");
+}
+function hideDog(){ dog.classList.add("hide"); }
+const headPop=$("headPop");
+function showHeadPop(side){            // bubble close to Byte, on the matching side
+  headPop.textContent = side==="left" ? "Left Side" : "Right Side";
+  headPop.style.left = (side==="left" ? 42.5 : 55) + "%";   // left bubble sits nearer Byte
+  headPop.classList.toggle("side-left", side==="left");
+  headPop.classList.toggle("side-right", side!=="left");
+  headPop.classList.add("show");
+}
+function hideHeadPop(){ headPop.classList.remove("show"); }
+const houseLeft=$("houseLeft"), houseRight=$("houseRight");
+let leftColor="blue", rightColor="red";
+function houseFile(color, variant){   // variant: ""(closed) | "open" | "dog"
+  const suffix = variant==="open" ? " + Open Gate" : variant==="dog" ? " + Dog" : "";
+  return "Assets/" + COLOR_NAME[color] + " House" + suffix + ".png";
+}
+function setHouse(side, variant){
+  const color = side==="left" ? leftColor : rightColor;
+  (side==="left"?houseLeft:houseRight).src = houseFile(color, variant);
+}
+function closeHouses(){ setHouse("left",""); setHouse("right",""); }
+const scanBox=$("scanBox");
+const SCAN={ left:{left:7,top:31,w:17,h:21}, right:{left:77,top:29,w:17,h:21} };  // scan box over each house (% of frame)
+async function scanHouse(isLeft, isCorrect){
+  const r = isLeft ? SCAN.left : SCAN.right;
+  scanBox.style.left=r.left+"%"; scanBox.style.top=r.top+"%"; scanBox.style.width=r.w+"%"; scanBox.style.height=r.h+"%";
+  scanBox.classList.remove("ok","bad","on"); void scanBox.offsetWidth;   // restart the sweep
+  scanBox.classList.add("on");
+  scanBeep();
+  await sleep(950);                                  // scan line sweeps over the house
+  scanBox.classList.add(isCorrect ? "ok" : "bad");   // result flash (green / red)
+  await sleep(450);
+  scanBox.classList.remove("on","ok","bad");
+}
 const arrow={ left:$("arrowLeft"), right:$("arrowRight") };
 const travUp=$("travelator"), travLeft=$("travLeft"), travRight=$("travRight");
 function setDir(el, dir){  // 'left' or 'right' — arrow shape + flow direction
@@ -252,7 +427,8 @@ function travel(which){  // 'up' | 'left' | 'right' | 'left-back' | 'right-back'
 
 /* ===================== Config + state ===================== */
 const TOTAL_ROUNDS=5, TUTORIAL_ROUNDS=2;
-let target="left", score=0, round=0, busy=false, lookTimer=[];
+const PARCEL_ICON='<img src="Assets/Parcel.png" alt="parcels">';
+let target="left", targetColor="blue", score=0, round=0, busy=false, lookTimer=[], curSprite="back";
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
 /* ===================== Byte placement (foot-anchored) ===================== */
@@ -261,18 +437,25 @@ function topLeftFor(sprite, footX, footY){
   return { left:(footX-ax*w)/FRAME.W*100, top:(footY-ay*h)/FRAME.H*100, w:w/FRAME.W*100 };
 }
 function setByte(sprite, footX, footY){           // instant placement
-  byte.src=SPRITE[sprite];
+  byte.src=SPRITE[sprite]; curSprite=sprite;
   const b=topLeftFor(sprite,footX,footY);
   byteWrap.style.transition="none";
   byteWrap.style.width=b.w+"%"; byteWrap.style.left=b.left+"%"; byteWrap.style.top=b.top+"%";
   byteWrap.offsetHeight; byteWrap.style.transition="";
 }
-function moveByte(sprite, footX, footY){          // animated walk
-  byte.src=SPRITE[sprite];
+async function nudge(footX, footY, dur){          // quick small move, keeps current sprite
+  const b=topLeftFor(curSprite,footX,footY);
+  byteWrap.style.transition=`left ${dur}ms ease-out, top ${dur}ms ease-out`;
+  byteWrap.style.left=b.left+"%"; byteWrap.style.top=b.top+"%";
+  await sleep(dur+20); byteWrap.style.transition="";
+}
+function moveByte(sprite, footX, footY){          // animated walk — Byte hops while moving
+  byte.src=SPRITE[sprite]; curSprite=sprite;
   const b=topLeftFor(sprite,footX,footY);
   byteWrap.style.width=b.w+"%";
+  byteAnim.classList.add("hop");
   return new Promise(resolve=>{
-    let done=false; const fin=()=>{ if(done)return; done=true; byteWrap.removeEventListener("transitionend",fin); resolve(); };
+    let done=false; const fin=()=>{ if(done)return; done=true; byteAnim.classList.remove("hop"); byteWrap.removeEventListener("transitionend",fin); resolve(); };
     byteWrap.addEventListener("transitionend",fin); setTimeout(fin,3000);
     requestAnimationFrame(()=>{ byteWrap.style.left=b.left+"%"; byteWrap.style.top=b.top+"%"; });
   });
@@ -281,11 +464,11 @@ function moveByte(sprite, footX, footY){          // animated walk
 /* ===================== Look both ways ===================== */
 async function lookBothWays(){          // runs to completion BEFORE the buttons appear
   const f=feetOf(WP.cross);
-  setByte("back",  f.x, f.y); await sleep(1000);   // settle at the centre
-  setByte("right", f.x, f.y); await sleep(1000);   // look right
-  setByte("back",  f.x, f.y); await sleep(1000);   // back to centre
-  setByte("left",  f.x, f.y); await sleep(1000);   // look left
-  setByte("back",  f.x, f.y); await sleep(1000);   // back to centre
+  setByte("back",  f.x, f.y); await sleep(450);                       // settle at the centre
+  setByte("right", f.x, f.y); showHeadPop("right"); await sleep(1400);// look right + "Right" bubble
+  hideHeadPop(); setByte("back", f.x, f.y); await sleep(450);         // back to centre
+  setByte("left",  f.x, f.y); showHeadPop("left"); await sleep(1400); // look left + "Left" bubble
+  hideHeadPop(); setByte("back", f.x, f.y); await sleep(450);         // back to centre
   byteAnim.classList.add("idle");                  // then start the idle pulse
 }
 function stopLook(){ byteAnim.classList.remove("idle"); }
@@ -296,17 +479,20 @@ async function exitFrame(isLeft){        // after a correct delivery, Byte walks
   const cf=feetOf(WP.cross);
   const st=setInterval(sfxStep,200);
   if(isLeft){
-    await moveByte("left", -260, cf.y);          // keep going left, off the left edge
+    await moveByte("left", -280, cf.y);          // keep going left, off the left edge
   } else {
-    await moveByte("left", TOP_ROAD_X, cf.y);    // step onto the top road
-    setByte("back", TOP_ROAD_X, cf.y);
-    await moveByte("back", TOP_ROAD_X, -320);    // walk up, off the top edge
+    await moveByte("right", 2120, cf.y);         // keep going right, off the right edge
   }
   clearInterval(st);
 }
 
 /* ===================== UI helpers ===================== */
-function say(t){ bubble.textContent=t; bubble.classList.add("show"); }
+function say(t){ bubbleText.innerHTML=t; bubble.classList.add("show"); }
+const COLOR_NAME={ red:"Red", blue:"Blue", pink:"Pink" };
+const COLOR_HEX ={ red:"#e8402c", blue:"#1f93d6", pink:"#e84393" };
+function colorWord(color){  // the house colour, in its own colour, Poppins semi-bold
+  return '<span style="font-family:\'Poppins\',sans-serif;font-weight:600;color:'+COLOR_HEX[color]+'">'+COLOR_NAME[color].toUpperCase()+'</span>';
+}
 function hideBubble(){ bubble.classList.remove("show"); }
 function showButtons(s){ leftBtn.disabled=rightBtn.disabled=!s; $("btnOverlay").classList.toggle("show",s); }
 function highlightTarget(on, showArrow){
@@ -324,8 +510,63 @@ function tone(f,s,d,t="sine",v=0.2){ if(!actx)return; const o=actx.createOscilla
 function sfxWin(){ [523,659,784,1046].forEach((f,i)=>tone(f,i*.12,.25,"triangle",.25)); }
 function sfxFail(){ tone(330,0,.18,"sawtooth",.2); tone(220,.16,.3,"sawtooth",.2); }
 function sfxStep(){ tone(700,0,.06,"square",.05); }
+function scanBeep(){ if(!actx) return; tone(740,0,.07,"square",.12); tone(990,.12,.07,"square",.12); tone(1320,.24,.09,"square",.12); }
+/* Real recorded bark (drop a file at Assets/dog-bark.mp3). Falls back to synth if missing. */
+const barkAudio = new Audio("Assets/dog%20bark.ogg");
+barkAudio.preload = "auto";
+function playBarkOnce(){
+  try{
+    barkAudio.currentTime = 0;
+    const p = barkAudio.play();
+    if(p && p.catch) p.catch(()=> sfxBark());   // no file / blocked → synth
+  }catch(e){ sfxBark(); }
+}
+function playBark(){ playBarkOnce(); setTimeout(playBarkOnce, 2000); }   // bark twice, 2s apart
+function barkAndWait(){   // play one bark, pulse the dog while it sounds, resolve when finished
+  return new Promise(res=>{
+    let done=false; const fin=()=>{ if(done)return; done=true; dog.classList.remove("barking"); res(); };
+    dog.classList.add("barking");                  // dog visibly barks with the sound
+    try{
+      barkAudio.currentTime=0;
+      barkAudio.addEventListener("ended", fin, {once:true});
+      const p=barkAudio.play();
+      if(p && p.catch) p.catch(()=>{ sfxBark(); setTimeout(fin,900); });
+      setTimeout(fin, 1600);   // fallback if no 'ended' fires
+    }catch(e){ sfxBark(); setTimeout(fin,900); }
+  });
+}
+function woof(t0, base, dlyBus){
+  if(!actx) return;
+  const dur=0.2;
+  const o=actx.createOscillator(); o.type="sawtooth";
+  o.frequency.setValueAtTime(base*1.5,t0);
+  o.frequency.exponentialRampToValueAtTime(base*0.78,t0+0.045);
+  o.frequency.exponentialRampToValueAtTime(base*0.55,t0+dur);
+  const o2=actx.createOscillator(); o2.type="square"; o2.frequency.setValueAtTime(base*0.5,t0);
+  const bp=actx.createBiquadFilter(); bp.type="bandpass"; bp.frequency.value=1100; bp.Q.value=1.0;
+  const g=actx.createGain();
+  g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(.5,t0+.02); g.gain.exponentialRampToValueAtTime(.001,t0+dur);
+  o.connect(bp); o2.connect(bp); bp.connect(g); g.connect(actx.destination); if(dlyBus) g.connect(dlyBus);
+  o.start(t0); o.stop(t0+dur+.05); o2.start(t0); o2.stop(t0+dur+.05);
+  const nb=actx.createBufferSource(); const buf=actx.createBuffer(1,Math.floor(actx.sampleRate*0.05),actx.sampleRate);
+  const d=buf.getChannelData(0); for(let j=0;j<d.length;j++) d[j]=Math.random()*2-1; nb.buffer=buf;
+  const nf=actx.createBiquadFilter(); nf.type="bandpass"; nf.frequency.value=1500; nf.Q.value=.7;
+  const ng=actx.createGain(); ng.gain.setValueAtTime(.3,t0); ng.gain.exponentialRampToValueAtTime(.001,t0+.05);
+  nb.connect(nf); nf.connect(ng); ng.connect(actx.destination); nb.start(t0); nb.stop(t0+.05);
+}
+function sfxBark(){            // synth fallback — 3 rough woofs with an outdoor "road" echo
+  if(!actx) return;
+  const t=actx.currentTime;
+  const dly=actx.createDelay(); dly.delayTime.value=0.14;
+  const fb=actx.createGain(); fb.gain.value=0.22; const wet=actx.createGain(); wet.gain.value=0.28;
+  dly.connect(fb); fb.connect(dly); dly.connect(wet); wet.connect(actx.destination);
+  woof(t, 300, dly); woof(t+0.34, 330, dly); woof(t+0.72, 285, dly);
+}
 function speak(t){ try{ if(!("speechSynthesis"in window))return; speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(t); u.rate=.95; u.pitch=1.2; speechSynthesis.speak(u);}catch(e){} }
+let moveSpeakTimer=null;
+function startMoveSpeak(phrase){ stopMoveSpeak(); speak(phrase); moveSpeakTimer=setInterval(()=>speak(phrase), 1300); }
+function stopMoveSpeak(){ if(moveSpeakTimer){ clearInterval(moveSpeakTimer); moveSpeakTimer=null; } try{ if("speechSynthesis"in window) speechSynthesis.cancel(); }catch(e){} }
 
 function confetti(){
   const colors=["#ff6a3d","#23a76a","#ffce3a","#2bb3e0","#e84393","#fff"];
@@ -341,25 +582,30 @@ function banner(t,c){ bannerText.textContent=t; bannerText.style.color=c; banner
 
 /* ===================== Game flow ===================== */
 function startGame(){
-  score=0; round=0; scoreEl.textContent="⭐ 0";
+  score=0; round=0; scoreEl.innerHTML=PARCEL_ICON+" 0";
   startScreen.classList.add("hide"); endScreen.classList.add("hide"); gameScreen.classList.remove("hide");
   nextRound();
 }
 
 async function nextRound(){
   round++;
-  busy=true; stopLook(); showButtons(false); hideBubble(); highlightTarget(false); hideParcel(); bigBtn.classList.add("hide");
+  busy=true; stopLook(); showButtons(false); hideBubble(); highlightTarget(false); hideParcel(); hideDog(); hideHeadPop(); bigBtn.classList.add("hide");
   const tutorial = round<=TUTORIAL_ROUNDS;
+  // pick two distinct house colours, set them, and choose the target side
+  const pool=["red","blue","pink"];
+  for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+  leftColor=pool[0]; rightColor=pool[1];
+  closeHouses();
   target = Math.random()<0.5 ? "left" : "right";
+  targetColor = target==="left" ? leftColor : rightColor;
 
   const sf=feetOf(WP.start);
   setByte("back", sf.x, sf.y);
   travel("up");                                 // vertical escalator while driving up
   await sleep(150);
 
-  const houseColor = target==="left" ? "BLUE" : "ORANGE";
-  say("Take the parcel to the "+houseColor+" house! 📦");
-  speak("Take the parcel to the "+houseColor+" house");
+  say("Take the parcel to the "+colorWord(targetColor)+" house! 📦");
+  speak("Take the parcel to the "+targetColor+" house");
 
   await sleep(700);
   const cf=feetOf(WP.cross);
@@ -377,7 +623,7 @@ async function nextRound(){
 
 async function choose(side){
   if(busy)return; busy=true; stopLook();
-  showButtons(false); hideBubble(); highlightTarget(false);
+  showButtons(false); hideBubble(); highlightTarget(false); hideHeadPop(); bigBtn.classList.add("hide");
 
   const isLeft = side==="left";
   const moveSprite   = isLeft ? "left" : "right";
@@ -385,62 +631,107 @@ async function choose(side){
   const houseWp      = isLeft ? WP.leftHouse : WP.rightHouse;
   const cf=feetOf(WP.cross), hf=feetOf(houseWp);
   hf.y = cf.y;                                 // keep feet on the same road line (no vertical drift)
+  const correct = (side===target);
 
   setByte(moveSprite, cf.x, cf.y);             // face the chosen way at the crossing
   await sleep(350);
   travel(isLeft ? "left" : "right");           // escalator on, in the travel direction
+  startMoveSpeak(isLeft ? "Moving left" : "Moving right");   // repeats until he arrives
   const st=setInterval(sfxStep,200);
-  await moveByte(moveSprite, hf.x, hf.y);       // walk to the house (Byte Left / Byte Right)
-  clearInterval(st);
-  travel("none");                               // reached the house → escalator off
-  setByte(parcelSprite, hf.x, hf.y);            // reached house → holding parcel
+  await moveByte(moveSprite, hf.x, hf.y);       // walk to the house
+  clearInterval(st); stopMoveSpeak();
+  travel("none");
 
-  if(side===target){
+  // arrived — Byte holds the parcel and calls out
+  setByte(parcelSprite, hf.x, hf.y);
+  say("Delivery! Delivery! 📦"); speak("Delivery! Delivery!");
+  await sleep(1100);
+  setHouse(side, "open");                       // the door opens...
+  await sleep(700);
+  setHouse(side, "dog");                        // ...and the dog appears at the door
+  await sleep(650);
+
+  if(correct){
+    // dog doesn't bark — deliver the parcel into the door, then it closes
+    say("Here you go! 🎉"); speak("Here you go!");
     await sleep(300);
-    showParcel(isLeft, hf);                     // place the parcel by the door
-    setByte(moveSprite, hf.x, hf.y);            // change Byte back to the normal (empty-handed) image
-    score++; scoreEl.textContent="⭐ "+score;
-    byteAnim.classList.add("cheer"); sfxWin(); confetti();
-    banner("YAY! 🎉","#ffe14d");
-    say("Parcel delivered! Great job! 🎉"); speak("Yay! Correct! Great job!");
-    await sleep(1700);
+    setByte(moveSprite, hf.x, hf.y);            // hands go empty exactly as the parcel leaves them
+    await tossParcelToDoor(side, hf);           // parcel appears at Byte and flies to the door
+    await sleep(250);
+    setHouse(side, "");                         // door closes (parcel received)
+    sfxWin(); confetti(); byteAnim.classList.add("cheer");
+    await showSuccessOverlay();                 // success popup → parcel flies into the counter
     byteAnim.classList.remove("cheer");
     await exitFrame(isLeft);                     // walk off-frame after delivering
     if(score>=TOTAL_ROUNDS){ endGame(); busy=false; return; }
-    bigBtn.textContent="Next ▶"; bigBtn.classList.remove("hide"); busy=false;
+    bigBtn.classList.remove("hide"); $("btnOverlay").classList.add("show"); busy=false;
   } else {
-    byteAnim.classList.add("bump"); sfxFail();
+    // wrong house — the dog barks
     banner("Oh no! 🚫","#ff5b5b");
-    const word = target==="left" ? "BLUE" : "ORANGE";
-    say("Oops! Wrong house. The parcel goes to the "+word+" house! Try again.");
-    speak("Oops! Wrong house. Try again.");
-    await sleep(1700);
+    const toward = isLeft ? -1 : 1;
+    const houseEl = isLeft ? houseLeft : houseRight;
+
+    byteAnim.classList.add("bump"); sfxFail(); houseEl.classList.add("barking");
+    const b1 = barkAndWait();
+    await nudge(hf.x - toward*20, hf.y, 280);    // Byte flinches back from the barking dog
+    await b1; houseEl.classList.remove("barking");
     byteAnim.classList.remove("bump");
-    const backSprite = isLeft ? "right" : "left";   // face back toward the centre
-    setByte(backSprite, hf.x, hf.y);
-    await sleep(250);
-    travel(isLeft ? "left-back" : "right-back");     // escalator on, reversed to match the return
+    await sleep(500);
+
+    houseEl.classList.add("barking");            // dog barks again
+    await barkAndWait(); houseEl.classList.remove("barking");
+    await sleep(400);
+
+    say("Oops! Wrong house!"); speak("Oops! Wrong house!");
+    await sleep(800);
+    setHouse(side, "open");                      // dog goes back inside (during the narration)
+    say("The parcel goes to the "+colorWord(targetColor)+" house!");
+    speak("The parcel goes to the "+targetColor+" house");
+    await sleep(750);
+    setHouse(side, "");                          // door closes (still during the narration)
+    await sleep(750);
+    const backParcel = isLeft ? "rightParcel" : "leftParcel";  // carry it, facing the centre
+    setByte(backParcel, hf.x - toward*0, hf.y);
+    await sleep(300);
+    travel(isLeft ? "left-back" : "right-back");
+    startMoveSpeak(isLeft ? "Moving right" : "Moving left");
     const t2=setInterval(sfxStep,200);
-    await moveByte(backSprite, cf.x, cf.y);          // walk back to the intersection
-    clearInterval(t2);
-    travel("none");                                  // back at the crossing → escalator off
-    setByte("back", cf.x, cf.y); byteAnim.classList.add("idle"); // no re-look on retry
-    say("Try again! The "+word+" house!");
+    await moveByte(backParcel, cf.x, cf.y);
+    clearInterval(t2); stopMoveSpeak();
+    travel("none");
+    setByte("back", cf.x, cf.y); byteAnim.classList.add("idle");
+    say("Try again! The "+colorWord(targetColor)+" house!");
     showButtons(true); busy=false;
   }
+}
+async function tossParcelToDoor(side, hf){       // Byte tosses the parcel into the open door
+  const isLeft=side==="left", w=83, h=76;
+  const doorX = isLeft ? 187 : 1808;             // door opening (px) per house (right is mirrored)
+  const doorY = 480;
+  const startX = hf.x + (isLeft ? -45 : 45), startY = hf.y - 150;
+  parcel.style.transition="none";
+  parcel.style.width=(w/FRAME.W*100)+"%";
+  parcel.style.left=((startX-w/2)/FRAME.W*100)+"%";
+  parcel.style.top=((startY-h)/FRAME.H*100)+"%";
+  parcel.classList.remove("hide"); parcel.offsetHeight;
+  parcel.style.transition="left .5s ease-in, top .5s cubic-bezier(.4,-.4,.7,1)";
+  parcel.style.left=((doorX-w/2)/FRAME.W*100)+"%";
+  parcel.style.top=((doorY-h)/FRAME.H*100)+"%";
+  await sleep(530);
+  parcel.classList.add("hide");                  // parcel goes inside
 }
 
 function endGame(){
   stopLook(); travel("none");
   gameScreen.classList.add("hide");
-  endScoreEl.textContent="⭐ "+score+" delivered!";
+  endScoreEl.innerHTML=PARCEL_ICON+" "+score+" delivered!";
   endScreen.classList.remove("hide");
   sfxWin(); speak("Amazing! You delivered all the parcels!");
 }
 
 /* ===================== Controls ===================== */
 function ensureAudio(){ try{ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==="suspended") actx.resume(); }catch(e){} }
-startScreen.addEventListener("click", ()=>{ ensureAudio(); startGame(); });
+$("startBtn").addEventListener("click", ()=>{ ensureAudio(); startGame(); });
 bigBtn.addEventListener("click",  ()=>{ ensureAudio(); nextRound(); });
 againBtn.addEventListener("click",()=>{ ensureAudio(); startGame(); });
 leftBtn.addEventListener("click", ()=>{ ensureAudio(); choose("left"); });
