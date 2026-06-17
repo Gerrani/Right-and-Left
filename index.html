@@ -141,15 +141,15 @@
 
   /* Speech bubble */
   #bubble{
-    position:fixed; left:50%; top:16px; transform:translate(-50%,0) scale(0);
+    position:fixed; left:50%; top:16px; transform:translate(-50%,-6px) scale(.98); opacity:0;
     background:#fff; color:#1d2433;
-    width:fit-content; max-width:90vw; min-height:88px; box-sizing:border-box;
-    padding:0 48px; display:flex; align-items:center; justify-content:center;
-    border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,.10), 0 18px 40px rgba(0,0,0,.22);
-    font-family:"Poppins",sans-serif; font-size:32px; font-weight:500; line-height:1.2; text-align:center;
-    transition:transform .28s cubic-bezier(.34,1.56,.64,1); z-index:20;
+    width:fit-content; max-width:90vw; min-height:50px; box-sizing:border-box;
+    padding:7px 34px; display:flex; align-items:center; justify-content:center;
+    border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,.10), 0 18px 40px rgba(0,0,0,.22);
+    font-family:"Poppins",sans-serif; font-size:26px; font-weight:500; line-height:1.2; text-align:center;
+    transition:transform .3s cubic-bezier(.34,1.56,.64,1), opacity .26s ease; z-index:20; pointer-events:none;
   }
-  #bubble.show{ transform:translate(-50%,0) scale(1); }
+  #bubble.show{ transform:translate(-50%,0) scale(1); opacity:1; }
   #bubbleText{ font-family:"Poppins",sans-serif; font-weight:500; }
 
   /* success overlay + flying parcel */
@@ -350,7 +350,7 @@ async function showSuccessOverlay(){
   successTitle.textContent="Delivered! 🎉";
   successSub.innerHTML="To the "+colorWord(targetColor)+" house";
   overlay.classList.add("show");
-  speak("Delivered to the "+(target==="left"?"blue":"orange")+" house. Great job!");
+  speak("Delivered to the "+targetColor+" house. Great job!");
   await sleep(1300);
   const fly=flyParcelToScore();        // parcel flies to the counter...
   overlay.classList.remove("show");    // ...while the overlay fades away
@@ -570,10 +570,19 @@ function sfxBark(){            // synth fallback — 3 rough woofs with an outdo
   dly.connect(fb); fb.connect(dly); dly.connect(wet); wet.connect(actx.destination);
   woof(t, 300, dly); woof(t+0.34, 330, dly); woof(t+0.72, 285, dly);
 }
+let preferredVoice=null;
+function pickVoice(){ try{ const vs=speechSynthesis.getVoices(); if(!vs||!vs.length) return;
+  preferredVoice = vs.find(v=>/^en/i.test(v.lang) && /google/i.test(v.name))      // clearer Google voices first
+               || vs.find(v=>/^en[-_]?(US|GB|AU)/i.test(v.lang))
+               || vs.find(v=>/^en/i.test(v.lang)) || vs[0];
+}catch(e){} }
+if("speechSynthesis"in window){ pickVoice(); window.speechSynthesis.onvoiceschanged=pickVoice; }
 function speak(t){ try{ if(!("speechSynthesis"in window))return; speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(t); u.rate=.95; u.pitch=1.2; speechSynthesis.speak(u);}catch(e){} }
+  const u=new SpeechSynthesisUtterance(t); u.rate=.95; u.pitch=1.0;   // natural pitch reads clearer than 1.2
+  if(preferredVoice) u.voice=preferredVoice;
+  speechSynthesis.speak(u);}catch(e){} }
 let moveSpeakTimer=null;
-function startMoveSpeak(phrase){ stopMoveSpeak(); speak(phrase); moveSpeakTimer=setInterval(()=>speak(phrase), 1300); }
+function startMoveSpeak(phrase){ stopMoveSpeak(); speak(phrase); }   // say it once — no looping narration while idle
 function stopMoveSpeak(){ if(moveSpeakTimer){ clearInterval(moveSpeakTimer); moveSpeakTimer=null; } try{ if("speechSynthesis"in window) speechSynthesis.cancel(); }catch(e){} }
 
 function confetti(){
