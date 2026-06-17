@@ -26,7 +26,7 @@
   .house{ position:absolute; width:13.33%; height:auto; z-index:2; pointer-events:none; transform-origin:bottom center; }
   .house.barking{ animation:dogBark .28s ease-in-out infinite; }
   #houseLeft{ left:5.06%; top:28.61%; }
-  #houseRight{ left:85.51%; top:28.61%; transform:scaleX(-1); }   /* mirror the right house */
+  #houseRight{ left:85.51%; top:28.61%; transform:scaleX(-1); }
   #houseRight.barking{ animation:dogBarkFlip .28s ease-in-out infinite; }
   @keyframes dogBarkFlip{ 0%,100%{ transform:scaleX(-1); } 45%{ transform:scaleX(-1) scale(1.08,.93); } }
 
@@ -109,6 +109,8 @@
   #byte{ width:100%; height:auto; display:block; filter:drop-shadow(0 6px 6px rgba(0,0,0,.3)); }
   #parcel{ position:absolute; z-index:4; pointer-events:none; filter:drop-shadow(0 4px 4px rgba(0,0,0,.3)); }
   #dog{ position:absolute; z-index:6; pointer-events:none; filter:drop-shadow(0 5px 5px rgba(0,0,0,.35)); transform-origin:bottom center; }
+  #dog.dogjump{ animation:dogJump .42s ease-out; }
+  @keyframes dogJump{ 0%{ transform:translateY(0);} 45%{ transform:translateY(-48%);} 100%{ transform:translateY(0);} }
 
   /* house scan effect */
   #scanBox{ position:absolute; z-index:7; pointer-events:none; opacity:0; transition:opacity .25s;
@@ -341,7 +343,7 @@ function flyParcelToScore(){            // animate a parcel from the card to the
     });
     setTimeout(()=>{
       flyParcel.style.opacity="0";
-      score++; scoreEl.innerHTML=PARCEL_ICON+" "+score; bumpScore();
+      score++; scoreEl.innerHTML=PARCEL_ICON+" "+score; bumpScore(); sfxCollect();
       res();
     }, 680);
   });
@@ -349,7 +351,7 @@ function flyParcelToScore(){            // animate a parcel from the card to the
 async function showSuccessOverlay(){
   successTitle.textContent="Delivered! 🎉";
   successSub.innerHTML="To the "+colorWord(targetColor)+" house";
-  overlay.classList.add("show");
+  overlay.classList.add("show"); sfxPop();
   speak("Delivered to the "+targetColor+" house. Great job!");
   await sleep(650);
   const fly=flyParcelToScore();        // parcel flies to the counter...
@@ -367,30 +369,60 @@ function showParcel(isLeft, feet){            // drop the parcel by the door
 }
 function hideParcel(){ parcel.classList.add("hide"); }
 const dog=$("dog");
-function showDog(isLeft, feet){               // barking dog at the wrong house
+const DOG_DOOR = { left:200, right:1800 };    // doorway the dog emerges from (content centre-x, per side)
+// the dog sprite is 1536x1024 with the dog content in a small region — position by that content:
+const DOG_VIS=210, DOG_NW=1536, DOG_CW=530, DOG_BOT=755, DOG_CCX={ left:815, right:720 };
+function dogPlace(isLeft, cx, feetY, animate){   // cx = where the dog's centre goes, feetY = ground line
   dog.src = isLeft ? "Assets/Dog%20for%20left%20house.png" : "Assets/Dog%20for%20right%20house.png";
-  const w=187, h=147, cx=feet.x + (isLeft ? -175 : 175);  // beside Byte, facing him (clear of the parcel)
-  dog.style.width=(w/FRAME.W*100)+"%";
-  dog.style.left=((cx-w/2)/FRAME.W*100)+"%";
-  dog.style.top=((feet.y-h)/FRAME.H*100)+"%";
-  dog.classList.remove("hide");
+  const S = DOG_VIS/DOG_CW;                   // scale so the visible dog is ~DOG_VIS px wide
+  const ccx = isLeft ? DOG_CCX.left : DOG_CCX.right;
+  dog.style.transition = animate ? "left .38s ease-out" : "none";
+  dog.style.width = (DOG_NW*S/FRAME.W*100)+"%";
+  dog.style.left  = ((cx - ccx*S)/FRAME.W*100)+"%";
+  dog.style.top   = ((feetY - DOG_BOT*S)/FRAME.H*100)+"%";   // dog's paws land on the road
+  if(!animate) dog.offsetHeight;
 }
 function hideDog(){ dog.classList.add("hide"); }
+async function dogRushOut(side, byteX){       // dog dashes out of the door onto the path
+  const isLeft=side==="left", y=feetOf(WP.cross).y;
+  const doorX=DOG_DOOR[isLeft?"left":"right"], outX=byteX+(isLeft?-55:55);
+  setHouse(side,"open");                      // door is open, no dog sitting
+  dogPlace(isLeft, doorX, y, false);          // dog appears at the door...
+  dog.classList.remove("hide");
+  await sleep(30);
+  dog.classList.add("dogjump");               // ...and bounds out onto the path
+  dogPlace(isLeft, outX, y, true);
+  await sleep(400); dog.classList.remove("dogjump");
+}
+function oneBark(){ dog.classList.add("barking"); playBarkOnce(); setTimeout(()=>dog.classList.remove("barking"), 260); }  // one lively bark
+async function dogBackIn(side){               // dog turns and trots back inside, door shuts
+  const isLeft=side==="left", y=feetOf(WP.cross).y;
+  dog.classList.add("dogjump");
+  dogPlace(isLeft, DOG_DOOR[isLeft?"left":"right"], y, true);
+  await sleep(400); dog.classList.remove("dogjump");
+  hideDog();
+  await houseClose(side);
+}
 const headPop=$("headPop");
 function showHeadPop(side){            // bubble close to Byte, on the matching side
-  headPop.textContent = side==="left" ? "Left Side" : "Right Side";
+  headPop.textContent = side==="left" ? "Left Turn" : "Right Turn";
   headPop.style.left = (side==="left" ? 42.5 : 55) + "%";   // left bubble sits nearer Byte
   headPop.classList.toggle("side-left", side==="left");
   headPop.classList.toggle("side-right", side!=="left");
   headPop.classList.add("show");
+  sfxPop();                                          // pop-in
+  speak(side==="left" ? "Left turn" : "Right turn"); // VO matches the popup
 }
-function hideHeadPop(){ headPop.classList.remove("show"); }
+function hideHeadPop(){ if(headPop.classList.contains("show")) sfxPopOff(); headPop.classList.remove("show"); }
 const houseLeft=$("houseLeft"), houseRight=$("houseRight");
 let leftColor="blue", rightColor="red";
 function houseFile(color, variant){   // variant: ""(closed) | "open" | "dog"
   // NOTE: filenames contain a literal "+", which Vercel decodes as a space in URLs.
   // Pre-encode the path (%20 = space, %2B = plus) so it resolves on the server and locally.
-  const suffix = variant==="open" ? "%20%2B%20Open%20Gate" : variant==="dog" ? "%20%2B%20Dog" : "";
+  const suffix = variant==="open" ? "%20%2B%20Open%20Gate"
+               : variant==="dog" ? "%20%2B%20Dog"
+               : variant==="dogparcel" ? "%20%2B%20Dog%20%2B%20Parcel"
+               : "";
   return "Assets/" + COLOR_NAME[color] + "%20House" + suffix + ".png";
 }
 function setHouse(side, variant){
@@ -398,6 +430,8 @@ function setHouse(side, variant){
   (side==="left"?houseLeft:houseRight).src = houseFile(color, variant);
 }
 function closeHouses(){ setHouse("left",""); setHouse("right",""); }
+async function houseOpen(side){ setHouse(side,"open"); await sleep(130); setHouse(side,"dog"); }   // door cracks, then the dog pulls it open
+async function houseClose(side){ setHouse(side,"open"); await sleep(130); setHouse(side,""); }      // dog steps back, door shuts
 const scanBox=$("scanBox");
 const SCAN={ left:{left:7,top:31,w:17,h:21}, right:{left:77,top:29,w:17,h:21} };  // scan box over each house (% of frame)
 async function scanHouse(isLeft, isCorrect){
@@ -461,9 +495,9 @@ function moveByte(sprite, footX, footY, lilt){     // animated walk — Byte hop
 async function lookBothWays(){          // runs to completion BEFORE the buttons appear
   const f=feetOf(WP.cross);
   setByte("back",  f.x, f.y); await sleep(450);                       // settle at the centre
-  setByte("right", f.x, f.y); showHeadPop("right"); await sleep(1400);// look right + "Right" bubble
+  setByte("rightParcel", f.x, f.y); showHeadPop("right"); await sleep(1400);// look right (carrying) + bubble
   hideHeadPop(); setByte("back", f.x, f.y); await sleep(450);         // back to centre
-  setByte("left",  f.x, f.y); showHeadPop("left"); await sleep(1400); // look left + "Left" bubble
+  setByte("leftParcel",  f.x, f.y); showHeadPop("left"); await sleep(1400); // look left (carrying) + bubble
   hideHeadPop(); setByte("back", f.x, f.y); await sleep(450);         // back to centre
   byteAnim.classList.add("idle");                  // then start the idle pulse
 }
@@ -473,7 +507,7 @@ const TOP_ROAD_X = 1485;                 // x of the vertical road that exits th
 async function exitFrame(isLeft){        // after a correct delivery, Byte walks off-frame
   byteAnim.classList.remove("idle");
   const cf=feetOf(WP.cross);
-  const st=setInterval(sfxStep,200);
+  const st=(sfxHop(),setInterval(sfxHop,420));
   if(isLeft){
     await moveByte("left", -280, cf.y);          // keep going left, off the left edge
   } else {
@@ -484,7 +518,8 @@ async function exitFrame(isLeft){        // after a correct delivery, Byte walks
 
 /* ===================== UI helpers ===================== */
 let bubbleTimer=null;
-function say(t){ bubbleText.innerHTML=t; bubble.classList.add("show");
+function say(t){ const wasHidden=!bubble.classList.contains("show"); bubbleText.innerHTML=t; bubble.classList.add("show");
+  if(wasHidden) sfxPop();                                              // UI sound exactly when the text box appears
   if(bubbleTimer) clearTimeout(bubbleTimer);
   bubbleTimer=setTimeout(()=>bubble.classList.remove("show"), 3500);   // auto-hide a few seconds after speaking
 }
@@ -510,6 +545,45 @@ function tone(f,s,d,t="sine",v=0.2){ if(!actx)return; const o=actx.createOscilla
 function sfxWin(){ [523,659,784,1046].forEach((f,i)=>tone(f,i*.12,.25,"triangle",.25)); }
 function sfxFail(){ tone(330,0,.18,"sawtooth",.2); tone(220,.16,.3,"sawtooth",.2); }
 function sfxStep(){ tone(700,0,.06,"square",.05); }
+function sfxPop(){    // micro UI sound — something pops in
+  if(!actx) return; const t=actx.currentTime, o=actx.createOscillator(), g=actx.createGain();
+  o.type="sine"; o.frequency.setValueAtTime(680,t); o.frequency.exponentialRampToValueAtTime(1150,t+0.08);
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.12,t+0.01); g.gain.exponentialRampToValueAtTime(0.001,t+0.14);
+  o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+0.16);
+}
+function sfxClick(){  // button press
+  if(!actx) return; const t=actx.currentTime, o=actx.createOscillator(), g=actx.createGain();
+  o.type="square"; o.frequency.setValueAtTime(520,t); o.frequency.exponentialRampToValueAtTime(860,t+0.05);
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.13,t+0.01); g.gain.exponentialRampToValueAtTime(0.001,t+0.1);
+  o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+0.12);
+}
+function sfxCollect(){  // score / parcel collected — two-note ding
+  if(!actx) return; const t=actx.currentTime;
+  [880,1320].forEach((f,i)=>{ const o=actx.createOscillator(), g=actx.createGain(); o.type="sine"; o.frequency.value=f;
+    const s=t+i*0.08; g.gain.setValueAtTime(0,s); g.gain.linearRampToValueAtTime(0.16,s+0.01); g.gain.exponentialRampToValueAtTime(0.001,s+0.2);
+    o.connect(g); g.connect(actx.destination); o.start(s); o.stop(s+0.22); });
+}
+function sfxPopOff(){ // micro UI sound — something pops out
+  if(!actx) return; const t=actx.currentTime, o=actx.createOscillator(), g=actx.createGain();
+  o.type="sine"; o.frequency.setValueAtTime(900,t); o.frequency.exponentialRampToValueAtTime(480,t+0.1);
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.08,t+0.01); g.gain.exponentialRampToValueAtTime(0.001,t+0.12);
+  o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+0.14);
+}
+function sfxHop(){   // punchy cartoon boing + soft tap, one per jump
+  if(!actx) return;
+  const t=actx.currentTime;
+  const o=actx.createOscillator(), g=actx.createGain();
+  o.type="triangle";
+  o.frequency.setValueAtTime(300,t);
+  o.frequency.exponentialRampToValueAtTime(640,t+0.06);
+  o.frequency.exponentialRampToValueAtTime(210,t+0.2);
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.3,t+0.015); g.gain.exponentialRampToValueAtTime(0.001,t+0.23);
+  o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+0.25);
+  const o2=actx.createOscillator(), g2=actx.createGain();   // soft footfall thump
+  o2.type="sine"; o2.frequency.setValueAtTime(150,t);
+  g2.gain.setValueAtTime(0.2,t); g2.gain.exponentialRampToValueAtTime(0.001,t+0.09);
+  o2.connect(g2); g2.connect(actx.destination); o2.start(t); o2.stop(t+0.1);
+}
 function scanBeep(){ if(!actx) return; tone(740,0,.07,"square",.12); tone(990,.12,.07,"square",.12); tone(1320,.24,.09,"square",.12); }
 /* Real recorded bark (drop a file at Assets/dog-bark.mp3). Falls back to synth if missing. */
 const barkAudio = new Audio("Assets/dog%20bark.ogg");
@@ -569,10 +643,20 @@ function pickVoice(){ try{ const vs=speechSynthesis.getVoices(); if(!vs||!vs.len
                || vs.find(v=>/^en/i.test(v.lang)) || vs[0];
 }catch(e){} }
 if("speechSynthesis"in window){ pickVoice(); window.speechSynthesis.onvoiceschanged=pickVoice; }
-function speak(t){ try{ if(!("speechSynthesis"in window))return; speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(t); u.rate=.95; u.pitch=1.0;   // natural pitch reads clearer than 1.2
-  if(preferredVoice) u.voice=preferredVoice;
-  speechSynthesis.speak(u);}catch(e){} }
+function speak(t){   // returns a promise that resolves when the line finishes (so callers can await it)
+  return new Promise(res=>{
+    try{
+      if(!("speechSynthesis"in window)){ res(); return; }
+      speechSynthesis.cancel();
+      const u=new SpeechSynthesisUtterance(t); u.rate=.95; u.pitch=1.0;
+      if(preferredVoice) u.voice=preferredVoice;
+      let done=false; const fin=()=>{ if(done)return; done=true; res(); };
+      u.onend=fin; u.onerror=fin;
+      setTimeout(fin, 900 + t.length*75);   // fallback if onend never fires
+      speechSynthesis.speak(u);
+    }catch(e){ res(); }
+  });
+}
 let moveSpeakTimer=null;
 function startMoveSpeak(phrase){ stopMoveSpeak(); speak(phrase); }   // say it once — no looping narration while idle
 function stopMoveSpeak(){ if(moveSpeakTimer){ clearInterval(moveSpeakTimer); moveSpeakTimer=null; } try{ if("speechSynthesis"in window) speechSynthesis.cancel(); }catch(e){} }
@@ -614,11 +698,10 @@ async function nextRound(){
   await sleep(150);
 
   say("Take the parcel to the "+colorWord(targetColor)+" house! 📦");
-  speak("Take the parcel to the "+targetColor+" house");
-
-  await sleep(700);
+  await speak("Take the parcel to the "+targetColor+" house");   // let the line finish
+  await sleep(250);
   const cf=feetOf(WP.cross);
-  const st=setInterval(sfxStep,220);
+  const st=(sfxHop(),setInterval(sfxHop,420));
   await moveByte("back", cf.x, cf.y, true);    // drive up to the intersection (lilting hop)
   clearInterval(st);
 
@@ -626,7 +709,7 @@ async function nextRound(){
   await sleep(400);                             // settle a beat after arriving
   await lookBothWays();                         // complete the look BEFORE buttons appear
   say("Which way should Byte turn?");
-  if(tutorial) speak("Which way? Left or right?");
+  if(tutorial){ await speak("Which way? Left or right?"); await sleep(150); }
   showButtons(true); busy=false;
 }
 
@@ -642,32 +725,31 @@ async function choose(side){
   hf.y = cf.y;                                 // keep feet on the same road line (no vertical drift)
   const correct = (side===target);
 
-  setByte(moveSprite, cf.x, cf.y);             // face the chosen way at the crossing
+  setByte(parcelSprite, cf.x, cf.y);           // turn the chosen way, carrying the parcel
   await sleep(350);
   travel(isLeft ? "left" : "right");           // escalator on, in the travel direction
   startMoveSpeak(isLeft ? "Moving left" : "Moving right");   // repeats until he arrives
-  const st=setInterval(sfxStep,200);
-  await moveByte(moveSprite, hf.x, hf.y);       // walk to the house
+  const st=(sfxHop(),setInterval(sfxHop,420));
+  await moveByte(parcelSprite, hf.x, hf.y);     // walk to the house carrying the parcel
   clearInterval(st); stopMoveSpeak();
   travel("none");
 
   // arrived — Byte holds the parcel and calls out
   setByte(parcelSprite, hf.x, hf.y);
-  say("Delivery! Delivery! 📦"); speak("Delivery! Delivery!");
-  await sleep(550);
-  setHouse(side, "open");                       // the door opens...
-  await sleep(350);
-  setHouse(side, "dog");                        // ...and the dog appears at the door
-  await sleep(325);
+  say("Delivery! Delivery! 📦"); await speak("Delivery! Delivery!");   // let the call finish
+  await sleep(150);
+  setHouse(side, "open");                       // the door opens
+  await sleep(300);
 
   if(correct){
-    // dog doesn't bark — deliver the parcel into the door, then it closes
-    say("Here you go! 🎉"); speak("Here you go!");
-    await sleep(150);
+    setHouse(side, "dog");                       // friendly dog appears at the door to receive
+    await sleep(300);
+    say("Here you go! 🎉"); await speak("Here you go!");
     setByte(moveSprite, hf.x, hf.y);            // hands go empty exactly as the parcel leaves them
-    await tossParcelToDoor(side, hf);           // parcel appears at Byte and flies to the door
-    await sleep(125);
-    setHouse(side, "");                         // door closes (parcel received)
+    await tossParcelToDoor(side, hf);           // parcel flies to the door
+    setHouse(side, "dogparcel");                // the dog catches and holds the parcel
+    await sleep(750);                           // ...and carries it inside
+    await houseClose(side);                     // door shuts
     sfxWin(); confetti(); byteAnim.classList.add("cheer");
     await showSuccessOverlay();                 // success popup → parcel flies into the counter
     byteAnim.classList.remove("cheer");
@@ -675,41 +757,41 @@ async function choose(side){
     if(score>=TOTAL_ROUNDS){ endGame(); busy=false; return; }
     bigBtn.classList.remove("hide"); $("btnOverlay").classList.add("show"); busy=false;
   } else {
-    // wrong house — the dog barks
+    // wrong house — the dog suddenly dashes out of the door onto the path, then barks
     banner("Oh no! 🚫","#ff5b5b");
     const toward = isLeft ? -1 : 1;
-    const houseEl = isLeft ? houseLeft : houseRight;
+    const recoilX = hf.x - toward*135;            // Byte leaps further back (more space from the dog)
+    const backParcel = isLeft ? "rightParcel" : "leftParcel";
+    await dogRushOut(side, hf.x);                 // dog bounds out onto the path
+    await sleep(100);
 
-    byteAnim.classList.add("bump"); sfxFail(); houseEl.classList.add("barking");
-    const b1 = barkAndWait();
-    await nudge(hf.x - toward*20, hf.y, 280);    // Byte flinches back from the barking dog
-    await b1; houseEl.classList.remove("barking");
+    // the dog barks 6 quick times so it doesn't look frozen
+    byteAnim.classList.add("bump"); sfxFail();
+    let byteReturning=null;
+    for(let i=0;i<6;i++){
+      oneBark();
+      if(i===0) await nudge(recoilX, hf.y, 230);  // Byte leaps back in fear on the first bark
+      if(i===3){                                  // on the 4th bark, Byte turns and runs back
+        byteAnim.classList.remove("bump");
+        setByte(backParcel, recoilX, hf.y);
+        travel(isLeft ? "left-back" : "right-back");
+        const t2=(sfxHop(),setInterval(sfxHop,420));
+        byteReturning = moveByte(backParcel, cf.x, cf.y).then(()=>{ clearInterval(t2); stopMoveSpeak(); });
+      }
+      await sleep(330);
+    }
     byteAnim.classList.remove("bump");
-    await sleep(250);
-
-    houseEl.classList.add("barking");            // dog barks again
-    await barkAndWait(); houseEl.classList.remove("barking");
-    await sleep(200);
-
-    say("Oops! Wrong house!"); speak("Oops! Wrong house!");
-    await sleep(400);
-    setHouse(side, "open");                      // dog goes back inside (during the narration)
-    say("The parcel goes to the "+colorWord(targetColor)+" house!");
-    speak("The parcel goes to the "+targetColor+" house");
-    await sleep(375);
-    setHouse(side, "");                          // door closes (still during the narration)
-    await sleep(375);
-    const backParcel = isLeft ? "rightParcel" : "leftParcel";  // carry it, facing the centre
-    setByte(backParcel, hf.x - toward*0, hf.y);
-    await sleep(150);
-    travel(isLeft ? "left-back" : "right-back");
-    startMoveSpeak(isLeft ? "Moving right" : "Moving left");
-    const t2=setInterval(sfxStep,200);
-    await moveByte(backParcel, cf.x, cf.y);
-    clearInterval(t2); stopMoveSpeak();
+    await dogBackIn(side);                         // dog turns back and returns into the house
+    await byteReturning;                           // Byte reaches the intersection
     travel("none");
     setByte("back", cf.x, cf.y); byteAnim.classList.add("idle");
-    say("Try again! The "+colorWord(targetColor)+" house!");
+
+    // then the narrator explains
+    say("Oops! Wrong house!"); await speak("Oops! Wrong house!");
+    await sleep(150);
+    say("The parcel goes to the "+colorWord(targetColor)+" house!");
+    await speak("The parcel goes to the "+targetColor+" house");
+    await sleep(150);
     showButtons(true); busy=false;
   }
 }
@@ -740,14 +822,14 @@ function endGame(){
 
 /* ===================== Controls ===================== */
 function ensureAudio(){ try{ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==="suspended") actx.resume(); }catch(e){} }
-$("startBtn").addEventListener("click", ()=>{ ensureAudio(); startGame(); });
-bigBtn.addEventListener("click",  ()=>{ ensureAudio(); nextRound(); });
-againBtn.addEventListener("click",()=>{ ensureAudio(); startGame(); });
-leftBtn.addEventListener("click", ()=>{ ensureAudio(); choose("left"); });
-rightBtn.addEventListener("click",()=>{ ensureAudio(); choose("right"); });
+$("startBtn").addEventListener("click", ()=>{ ensureAudio(); sfxClick(); startGame(); });
+bigBtn.addEventListener("click",  ()=>{ ensureAudio(); sfxClick(); nextRound(); });
+againBtn.addEventListener("click",()=>{ ensureAudio(); sfxClick(); startGame(); });
+leftBtn.addEventListener("click", ()=>{ ensureAudio(); sfxClick(); choose("left"); });
+rightBtn.addEventListener("click",()=>{ ensureAudio(); sfxClick(); choose("right"); });
 document.addEventListener("keydown", e=>{
-  if(e.key==="ArrowLeft"  && !leftBtn.disabled)  choose("left");
-  if(e.key==="ArrowRight" && !rightBtn.disabled) choose("right");
+  if(e.key==="ArrowLeft"  && !leftBtn.disabled){  sfxClick(); choose("left"); }
+  if(e.key==="ArrowRight" && !rightBtn.disabled){ sfxClick(); choose("right"); }
 });
 
 /* initial placement */
