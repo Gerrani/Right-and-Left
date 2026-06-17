@@ -388,8 +388,10 @@ function hideHeadPop(){ headPop.classList.remove("show"); }
 const houseLeft=$("houseLeft"), houseRight=$("houseRight");
 let leftColor="blue", rightColor="red";
 function houseFile(color, variant){   // variant: ""(closed) | "open" | "dog"
-  const suffix = variant==="open" ? " + Open Gate" : variant==="dog" ? " + Dog" : "";
-  return "Assets/" + COLOR_NAME[color] + " House" + suffix + ".png";
+  // NOTE: filenames contain a literal "+", which Vercel decodes as a space in URLs.
+  // Pre-encode the path (%20 = space, %2B = plus) so it resolves on the server and locally.
+  const suffix = variant==="open" ? "%20%2B%20Open%20Gate" : variant==="dog" ? "%20%2B%20Dog" : "";
+  return "Assets/" + COLOR_NAME[color] + "%20House" + suffix + ".png";
 }
 function setHouse(side, variant){
   const color = side==="left" ? leftColor : rightColor;
@@ -489,13 +491,17 @@ async function exitFrame(isLeft){        // after a correct delivery, Byte walks
 }
 
 /* ===================== UI helpers ===================== */
-function say(t){ bubbleText.innerHTML=t; bubble.classList.add("show"); }
+let bubbleTimer=null;
+function say(t){ bubbleText.innerHTML=t; bubble.classList.add("show");
+  if(bubbleTimer) clearTimeout(bubbleTimer);
+  bubbleTimer=setTimeout(()=>bubble.classList.remove("show"), 3500);   // auto-hide a few seconds after speaking
+}
 const COLOR_NAME={ red:"Red", blue:"Blue", pink:"Pink" };
 const COLOR_HEX ={ red:"#e8402c", blue:"#1f93d6", pink:"#e84393" };
 function colorWord(color){  // the house colour, in its own colour, Poppins semi-bold
   return '<span style="font-family:\'Poppins\',sans-serif;font-weight:600;color:'+COLOR_HEX[color]+'">'+COLOR_NAME[color].toUpperCase()+'</span>';
 }
-function hideBubble(){ bubble.classList.remove("show"); }
+function hideBubble(){ if(bubbleTimer){ clearTimeout(bubbleTimer); bubbleTimer=null; } bubble.classList.remove("show"); }
 function showButtons(s){ leftBtn.disabled=rightBtn.disabled=!s; $("btnOverlay").classList.toggle("show",s); }
 function highlightTarget(on, showArrow){
   glow.left.classList.toggle("on",  on&&target==="left");
