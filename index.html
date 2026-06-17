@@ -351,11 +351,11 @@ async function showSuccessOverlay(){
   successSub.innerHTML="To the "+colorWord(targetColor)+" house";
   overlay.classList.add("show");
   speak("Delivered to the "+targetColor+" house. Great job!");
-  await sleep(1300);
+  await sleep(650);
   const fly=flyParcelToScore();        // parcel flies to the counter...
   overlay.classList.remove("show");    // ...while the overlay fades away
   await fly;
-  await sleep(200);
+  await sleep(100);
 }
 const glow={ left:$("glowLeft"), right:$("glowRight") };
 function showParcel(isLeft, feet){            // drop the parcel by the door
@@ -417,16 +417,8 @@ function setDir(el, dir){  // 'left' or 'right' — arrow shape + flow direction
   el.classList.toggle("point-left",  dir==="left");
   el.classList.toggle("point-right", dir==="right");
 }
-function travel(which){  // 'up' | 'left' | 'right' | 'left-back' | 'right-back' | 'none' — only ON while moving
-  travUp.classList.toggle("hide", which!=="up");
-  const showL = which==="left" || which==="left-back";
-  const showR = which==="right" || which==="right-back";
-  travLeft.classList.toggle("hide", !showL);
-  travRight.classList.toggle("hide", !showR);
-  if(which==="left")       setDir(travLeft,"left");
-  else if(which==="left-back")  setDir(travLeft,"right");
-  if(which==="right")      setDir(travRight,"right");
-  else if(which==="right-back") setDir(travRight,"left");
+function travel(which){  // moving escalator arrows removed — keep all hidden in every state
+  travUp.classList.add("hide"); travLeft.classList.add("hide"); travRight.classList.add("hide");
 }
 
 /* ===================== Config + state ===================== */
@@ -662,19 +654,19 @@ async function choose(side){
   // arrived — Byte holds the parcel and calls out
   setByte(parcelSprite, hf.x, hf.y);
   say("Delivery! Delivery! 📦"); speak("Delivery! Delivery!");
-  await sleep(1100);
+  await sleep(550);
   setHouse(side, "open");                       // the door opens...
-  await sleep(700);
+  await sleep(350);
   setHouse(side, "dog");                        // ...and the dog appears at the door
-  await sleep(650);
+  await sleep(325);
 
   if(correct){
     // dog doesn't bark — deliver the parcel into the door, then it closes
     say("Here you go! 🎉"); speak("Here you go!");
-    await sleep(300);
+    await sleep(150);
     setByte(moveSprite, hf.x, hf.y);            // hands go empty exactly as the parcel leaves them
     await tossParcelToDoor(side, hf);           // parcel appears at Byte and flies to the door
-    await sleep(250);
+    await sleep(125);
     setHouse(side, "");                         // door closes (parcel received)
     sfxWin(); confetti(); byteAnim.classList.add("cheer");
     await showSuccessOverlay();                 // success popup → parcel flies into the counter
@@ -693,23 +685,23 @@ async function choose(side){
     await nudge(hf.x - toward*20, hf.y, 280);    // Byte flinches back from the barking dog
     await b1; houseEl.classList.remove("barking");
     byteAnim.classList.remove("bump");
-    await sleep(500);
+    await sleep(250);
 
     houseEl.classList.add("barking");            // dog barks again
     await barkAndWait(); houseEl.classList.remove("barking");
-    await sleep(400);
+    await sleep(200);
 
     say("Oops! Wrong house!"); speak("Oops! Wrong house!");
-    await sleep(800);
+    await sleep(400);
     setHouse(side, "open");                      // dog goes back inside (during the narration)
     say("The parcel goes to the "+colorWord(targetColor)+" house!");
     speak("The parcel goes to the "+targetColor+" house");
-    await sleep(750);
+    await sleep(375);
     setHouse(side, "");                          // door closes (still during the narration)
-    await sleep(750);
+    await sleep(375);
     const backParcel = isLeft ? "rightParcel" : "leftParcel";  // carry it, facing the centre
     setByte(backParcel, hf.x - toward*0, hf.y);
-    await sleep(300);
+    await sleep(150);
     travel(isLeft ? "left-back" : "right-back");
     startMoveSpeak(isLeft ? "Moving right" : "Moving left");
     const t2=setInterval(sfxStep,200);
