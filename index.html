@@ -29,6 +29,40 @@
   #houseRight{ left:85.51%; top:28.61%; transform:scaleX(-1); }
   #houseRight.barking{ animation:dogBarkFlip .28s ease-in-out infinite; }
   @keyframes dogBarkFlip{ 0%,100%{ transform:scaleX(-1); } 45%{ transform:scaleX(-1) scale(1.08,.93); } }
+  /* happy little squash-and-stretch hop when the house receives its parcel */
+  .house.happy{ animation:houseHappy .95s cubic-bezier(.3,1.3,.5,1); }
+  #houseRight.happy{ animation:houseHappyFlip .95s cubic-bezier(.3,1.3,.5,1); }
+  @keyframes houseHappy{
+    0%{ transform:scale(1,1); }
+    16%{ transform:scale(1.07,.9); }
+    38%{ transform:scale(.93,1.11) translateY(-4%); }
+    58%{ transform:scale(1.05,.96) translateY(0); }
+    78%{ transform:scale(.98,1.04) translateY(-1.6%); }
+    100%{ transform:scale(1,1); }
+  }
+  @keyframes houseHappyFlip{
+    0%{ transform:scaleX(-1) scale(1,1); }
+    16%{ transform:scaleX(-1) scale(1.07,.9); }
+    38%{ transform:scaleX(-1) scale(.93,1.11) translateY(-4%); }
+    58%{ transform:scaleX(-1) scale(1.05,.96) translateY(0); }
+    78%{ transform:scaleX(-1) scale(.98,1.04) translateY(-1.6%); }
+    100%{ transform:scaleX(-1) scale(1,1); }
+  }
+  /* quick little settle-bounce as the door shuts */
+  .house.bounce{ animation:houseBounce .45s ease-out; }
+  #houseRight.bounce{ animation:houseBounceFlip .45s ease-out; }
+  @keyframes houseBounce{
+    0%{ transform:scale(1,1); }
+    35%{ transform:scale(1.05,.93); }
+    65%{ transform:scale(.98,1.03); }
+    100%{ transform:scale(1,1); }
+  }
+  @keyframes houseBounceFlip{
+    0%{ transform:scaleX(-1) scale(1,1); }
+    35%{ transform:scaleX(-1) scale(1.05,.93); }
+    65%{ transform:scaleX(-1) scale(.98,1.03); }
+    100%{ transform:scaleX(-1) scale(1,1); }
+  }
 
   /* moving walkway on the vertical path — glowing upward chevrons + centre light line */
   #travelator{
@@ -108,9 +142,9 @@
   @keyframes idle{ 0%,100%{ transform:scale(1);} 50%{ transform:scale(.98);} }
   #byte{ width:100%; height:auto; display:block; filter:drop-shadow(0 6px 6px rgba(0,0,0,.3)); }
   #parcel{ position:absolute; z-index:4; pointer-events:none; filter:drop-shadow(0 4px 4px rgba(0,0,0,.3)); }
-  #dog{ position:absolute; z-index:6; pointer-events:none; filter:drop-shadow(0 5px 5px rgba(0,0,0,.35)); transform-origin:bottom center; }
+  #dog{ position:absolute; z-index:6; pointer-events:none; filter:drop-shadow(0 5px 5px rgba(0,0,0,.35)); transform-origin:bottom center; transform:scaleX(var(--flip,1)); }
   #dog.dogjump{ animation:dogJump .42s ease-out; }
-  @keyframes dogJump{ 0%{ transform:translateY(0);} 45%{ transform:translateY(-48%);} 100%{ transform:translateY(0);} }
+  @keyframes dogJump{ 0%{ transform:scaleX(var(--flip,1)) translateY(0);} 45%{ transform:scaleX(var(--flip,1)) translateY(-48%);} 100%{ transform:scaleX(var(--flip,1)) translateY(0);} }
 
   /* house scan effect */
   #scanBox{ position:absolute; z-index:7; pointer-events:none; opacity:0; transition:opacity .25s;
@@ -128,18 +162,20 @@
   #headPop{
     position:absolute; left:46.9%; top:27%; transform:translate(-50%,10px) scale(.4); transform-origin:bottom center;
     opacity:0; z-index:9; pointer-events:none; white-space:nowrap;
-    background:#fff; border-radius:18px; padding:8px 24px;
+    background:#fff; border-radius:14px; border:2px solid rgba(0,0,0,.16); padding:8px 24px;
     font-family:"Poppins",sans-serif; font-weight:500; font-size:clamp(16px,2.2vw,26px); color:#111111;
     box-shadow:0 10px 26px rgba(0,0,0,.28);
     transition:transform .25s cubic-bezier(.34,1.7,.5,1), opacity .2s;
   }
   #headPop.show{ transform:translate(-50%,0) scale(1); opacity:1; }
-  #headPop::after{ content:""; position:absolute; left:50%; bottom:-13px; transform:translateX(-50%);
+  #headPop::before{ content:""; position:absolute; left:50%; bottom:-13px; transform:translateX(-50%);
+    border-left:12px solid transparent; border-right:12px solid transparent; border-top:15px solid rgba(0,0,0,.16); }
+  #headPop::after{ content:""; position:absolute; left:50%; bottom:-11px; transform:translateX(-50%);
     border-left:11px solid transparent; border-right:11px solid transparent; border-top:14px solid #fff; }
-  #headPop.side-left::after{ left:78%; }    /* tail points down-right toward Byte */
-  #headPop.side-right::after{ left:22%; }   /* tail points down-left toward Byte */
+  #headPop.side-left::before,#headPop.side-left::after{ left:78%; }    /* tail points down-right toward Byte */
+  #headPop.side-right::before,#headPop.side-right::after{ left:22%; }  /* tail points down-left toward Byte */
   #dog.barking{ animation:dogBark .28s ease-in-out infinite; }
-  @keyframes dogBark{ 0%,100%{ transform:scale(1,1); } 45%{ transform:scale(1.08,.93); } }
+  @keyframes dogBark{ 0%,100%{ transform:scaleX(var(--flip,1)) scale(1,1); } 45%{ transform:scaleX(var(--flip,1)) scale(1.08,.93); } }
 
   /* Speech bubble */
   #bubble{
@@ -147,7 +183,7 @@
     background:#fff; color:#1d2433;
     width:fit-content; max-width:90vw; min-height:50px; box-sizing:border-box;
     padding:7px 34px; display:flex; align-items:center; justify-content:center;
-    border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,.10), 0 18px 40px rgba(0,0,0,.22);
+    border-radius:14px; border:2px solid rgba(0,0,0,.16); box-shadow:0 4px 10px rgba(0,0,0,.10), 0 18px 40px rgba(0,0,0,.22);
     font-family:"Poppins",sans-serif; font-size:26px; font-weight:500; line-height:1.2; text-align:center;
     transition:transform .3s cubic-bezier(.34,1.56,.64,1), opacity .26s ease; z-index:20; pointer-events:none;
   }
@@ -158,13 +194,14 @@
   #successOverlay{ position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center;
     background:rgba(0,0,0,.4); opacity:0; transition:opacity .35s; pointer-events:none; }
   #successOverlay.show{ opacity:1; }
-  #successCard{ background:#fff; border-radius:28px; padding:34px 56px; text-align:center;
+  #successCard{ background:#fff; border-radius:20px; border:2px solid rgba(0,0,0,.16); padding:42px 66px 46px;
+    display:flex; flex-direction:column; align-items:center; text-align:center; gap:10px;
     box-shadow:0 24px 60px rgba(0,0,0,.4); transform:scale(.5); transition:transform .45s cubic-bezier(.34,1.7,.5,1);
     font-family:"Poppins",sans-serif; }
   #successOverlay.show #successCard{ transform:scale(1); }
-  #successCard img{ width:96px; height:auto; display:block; margin:0 auto 14px; filter:drop-shadow(0 6px 8px rgba(0,0,0,.25)); }
-  #successTitle{ font-size:42px; font-weight:600; color:#23a76a; }
-  #successSub{ font-size:26px; font-weight:500; color:#1d2433; margin-top:8px; }
+  #successCard img{ width:104px; height:auto; display:block; margin:0 0 6px; filter:drop-shadow(0 6px 8px rgba(0,0,0,.25)); }
+  #successTitle{ font-size:44px; font-weight:700; color:#23a76a; line-height:1.1; margin:0; letter-spacing:.01em; }
+  #successSub{ font-size:25px; font-weight:500; color:#1d2433; line-height:1.3; margin:0; }
   #flyParcel{ position:fixed; width:70px; height:auto; z-index:40; pointer-events:none; opacity:0; left:0; top:0; }
   #score.pop{ animation:scorePop .45s ease; }
   @keyframes scorePop{ 0%,100%{ transform:scale(1); } 40%{ transform:scale(1.35); } }
@@ -179,38 +216,46 @@
 
   /* ===== Pill buttons (blue glossy, white border, circular badge) ===== */
   .pill{
-    position:fixed; z-index:20; cursor:pointer; border:none; box-sizing:border-box;
-    display:inline-flex; align-items:center; gap:.5em; padding:0 .85em;
-    height:var(--btn-h); border-radius:999px; white-space:nowrap;
-    color:#fff; font-family:"Poppins",sans-serif; font-weight:800; text-transform:uppercase;
-    font-size:calc(var(--btn-h) * 0.39); letter-spacing:.03em;
-    background:linear-gradient(#62c8f0 0%, #36a9e4 48%, #1f93d6 78%, #1887cc 100%);
-    border:0.16em solid #ffffff;
+    position:fixed; z-index:20; cursor:pointer; box-sizing:border-box; overflow:hidden;
+    display:inline-flex; align-items:center; gap:.5em; padding:0 1em;
+    height:var(--btn-h); border-radius:999px; white-space:nowrap;          /* full pill */
+    color:#7c5836; font-family:"Poppins",sans-serif; font-weight:700; text-transform:uppercase;
+    font-size:calc(var(--btn-h) * 0.39); letter-spacing:.07em;
+    background:linear-gradient(#fffaf1 0%, #fbf0da 100%);                 /* cream / ivory */
+    border:0.32em solid #d9b488;                                         /* warm wooden frame */
     box-shadow:
-      0 0 0 0.1em #2877ad,
-      0 0.26em 0 #1670ab,
-      0 0.5em 0.6em rgba(0,0,0,.3),
-      inset 0 0.32em 0.25em rgba(255,255,255,.5),
-      inset 0 -0.3em 0.25em rgba(0,0,0,.14);
-    text-shadow:0 0.06em 0 rgba(8,72,120,.6), 0 0.1em 0.18em rgba(0,0,0,.3);
-    transition:transform .18s cubic-bezier(.34,1.7,.5,1), opacity .3s;
+      0 0.4em 0.5em rgba(95,62,30,.3),             /* soft drop shadow beneath */
+      inset 0 0 0 0.07em rgba(255,255,255,.65);    /* subtle inner light edge */
+    text-shadow:none;
+    transition:transform .12s ease, box-shadow .12s ease, opacity .3s;
   }
+  .pill::before{                                   /* faint top sheen */
+    content:""; position:absolute; left:6%; right:6%; top:8%; height:40%;
+    border-radius:999px;
+    background:linear-gradient(rgba(255,255,255,.5), rgba(255,255,255,0));
+    pointer-events:none;
+  }
+  .pill > *{ position:relative; z-index:1; }       /* keep label/badge above the sheen */
   .pill .badge{
-    flex:0 0 auto; width:1.9em; height:1.9em; border-radius:50%;
-    background:none; border:0.15em solid #ffffff; box-shadow:none;
+    flex:0 0 auto; width:1.2em; height:1.2em; border:none; background:none; box-shadow:none;
     display:flex; align-items:center; justify-content:center;
   }
-  .pill .badge svg{ width:76%; height:76%; display:block; }
-  .pill:hover{ transform:scale(1.06); }
-  .pill:active{ transform:scale(.93); }
+  .pill .badge svg{ width:100%; height:100%; display:block; stroke:#7c5836; }   /* brown arrows */
+  #startBtn .badge svg path, #againBtn .badge svg path{ fill:#7c5836; }         /* brown play-triangles */
+  .pill:hover{ transform:translateY(-2px); }
+  .pill:active{ transform:translateY(2px);         /* button sinks toward its shadow */
+    box-shadow:0 0.16em 0.22em rgba(95,62,30,.26), inset 0 0 0 0.07em rgba(255,255,255,.55); }
   .pill.center{ left:50%; transform:translateX(-50%); }
-  .pill.center:hover{ transform:translateX(-50%) scale(1.06); }
-  .pill.center:active{ transform:translateX(-50%) scale(.93); }
+  .pill.center:hover{ transform:translateX(-50%) translateY(-2px); }
+  .pill.center:active{ transform:translateX(-50%) translateY(2px);
+    box-shadow:0 0.16em 0.22em rgba(95,62,30,.26), inset 0 0 0 0.07em rgba(255,255,255,.55); }
   #leftBtn{ bottom:7%; right:calc(54% + 35px); }
   #rightBtn{ bottom:7%; left:54%; }
   #leftBtn, #rightBtn{ min-width:7.5em; justify-content:center; }   /* equal width, centred content */
   #leftBtn:disabled, #rightBtn:disabled{ opacity:0; pointer-events:none; }
-  #bigBtn{ bottom:9%; }
+  #bigBtn{ bottom:9%; animation:btnFloat 2.6s ease-in-out infinite; }    /* very subtle up/down drift */
+  @keyframes btnFloat{ 0%,100%{ bottom:9%; } 50%{ bottom:calc(9% + 7px); } }
+  #bigBtn:hover{ animation-play-state:paused; transform:translateX(-50%) translateY(-2px); }
   #againBtn{ bottom:9%; }
 
   #btnOverlay{ position:fixed; left:0; right:0; bottom:0; height:30%; z-index:18; pointer-events:none;
@@ -223,7 +268,26 @@
   #bannerText.show{ opacity:1; transform:scale(1); }
   .confetti{ position:fixed; width:11px; height:17px; top:-25px; border-radius:2px; z-index:14; pointer-events:none; }
 
-  #startBtn{ bottom:9%; }
+  /* Big, bouncy kid-friendly PLAY button on the start screen (no text) */
+  #startBtn{
+    position:fixed; left:50%; bottom:12%; transform:translateX(-50%);
+    width:clamp(104px,24vw,156px); aspect-ratio:1; padding:0; cursor:pointer; z-index:20;
+    border:6px solid #fff; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(circle at 50% 30%, #9bef66 0%, #5fce3e 46%, #38aa20 100%);
+    box-shadow:0 0 0 6px rgba(40,130,26,.30), 0 12px 0 #2c8c1e, 0 18px 24px rgba(0,0,0,.35),
+               inset 0 8px 10px rgba(255,255,255,.55), inset 0 -12px 14px rgba(0,0,0,.18);
+    animation:startPulse 1.15s ease-in-out infinite;
+  }
+  #startBtn .playTri{ width:44%; height:44%; margin-left:7%; filter:drop-shadow(0 3px 3px rgba(0,0,0,.3)); }
+  #startBtn::before{ content:""; position:absolute; inset:-14px; border-radius:50%; pointer-events:none;
+    border:4px solid rgba(255,255,255,.85); animation:startRing 1.6s ease-out infinite; }
+  #startBtn:hover{ animation:none; transform:translateX(-50%) scale(1.07); }
+  #startBtn:active{ animation:none; transform:translateX(-50%) translateY(6px) scale(.97);
+    box-shadow:0 0 0 6px rgba(40,130,26,.30), 0 4px 0 #2c8c1e, 0 8px 14px rgba(0,0,0,.35),
+               inset 0 8px 10px rgba(255,255,255,.55), inset 0 -12px 14px rgba(0,0,0,.18); }
+  @keyframes startPulse{ 0%,100%{ transform:translateX(-50%) scale(1); } 50%{ transform:translateX(-50%) scale(1.07); } }
+  @keyframes startRing{ 0%{ transform:scale(.8); opacity:.7; } 100%{ transform:scale(1.55); opacity:0; } }
 
   #endScore{
     position:absolute; left:50%; top:14%; transform:translateX(-50%);
@@ -238,7 +302,7 @@
     <!-- START SCREEN -->
     <div id="startScreen" class="screen">
       <img class="full" src="Assets/Start.webp" alt="Start" />
-      <button id="startBtn" class="pill center"><span class="badge"><svg viewBox="0 0 24 24"><path d="M8 6.5L18 12L8 17.5Z" fill="#fff"/></svg></span>Get Started</button>
+      <button id="startBtn" aria-label="Play"><svg class="playTri" viewBox="0 0 24 24"><path d="M8 5 L19 12 L8 19 Z" fill="#fff"/></svg></button>
     </div>
 
     <!-- GAME SCREEN -->
@@ -271,7 +335,7 @@
       <div id="successOverlay">
         <div id="successCard">
           <img src="Assets/Parcel.png" alt="parcel" />
-          <div id="successTitle">Delivered! 🎉</div>
+          <div id="successTitle">Delivered!</div>
           <div id="successSub"></div>
         </div>
       </div>
@@ -349,7 +413,7 @@ function flyParcelToScore(){            // animate a parcel from the card to the
   });
 }
 async function showSuccessOverlay(){
-  successTitle.textContent="Delivered! 🎉";
+  successTitle.textContent="Delivered!";
   successSub.innerHTML="To the "+colorWord(targetColor)+" house";
   overlay.classList.add("show"); sfxPop();
   speak("Delivered to the "+targetColor+" house. Great job!");
@@ -371,37 +435,51 @@ function hideParcel(){ parcel.classList.add("hide"); }
 const dog=$("dog");
 const DOG_DOOR = { left:200, right:1800 };    // doorway the dog emerges from (content centre-x, per side)
 // the dog sprite is 1536x1024 with the dog content in a small region — position by that content:
-const DOG_VIS=210, DOG_NW=1536, DOG_CW=530, DOG_BOT=755, DOG_CCX={ left:815, right:720 };
-function dogPlace(isLeft, cx, feetY, animate){   // cx = where the dog's centre goes, feetY = ground line
+const DOG_VIS=118, DOG_NW=1536, DOG_CW=530, DOG_BOT=755, DOG_CCX={ left:815, right:720 };
+function dogPlace(isLeft, cx, feetY, animate, vis){   // cx = where the dog's centre goes, feetY = ground line; vis overrides visible width
   dog.src = isLeft ? "Assets/Dog%20for%20left%20house.png" : "Assets/Dog%20for%20right%20house.png";
-  const S = DOG_VIS/DOG_CW;                   // scale so the visible dog is ~DOG_VIS px wide
-  const ccx = isLeft ? DOG_CCX.left : DOG_CCX.right;
-  dog.style.transition = animate ? "left .38s ease-out" : "none";
+  const S = (vis||DOG_VIS)/DOG_CW;            // scale so the visible dog is ~vis px wide
+  let ccx = isLeft ? DOG_CCX.left : DOG_CCX.right;
+  if(dog.style.getPropertyValue("--flip").trim()==="-1") ccx = DOG_NW - ccx;   // content centre mirrors when the dog faces the house
+  dog.style.transition = animate ? "left .38s ease-out, width .38s ease-out, top .38s ease-out" : "none";
   dog.style.width = (DOG_NW*S/FRAME.W*100)+"%";
   dog.style.left  = ((cx - ccx*S)/FRAME.W*100)+"%";
   dog.style.top   = ((feetY - DOG_BOT*S)/FRAME.H*100)+"%";   // dog's paws land on the road
   if(!animate) dog.offsetHeight;
 }
 function hideDog(){ dog.classList.add("hide"); }
-async function dogRushOut(side, byteX){       // dog dashes out of the door onto the path
+async function dogRushOut(side, landX){       // dog dashes out of the door and lands at landX
   const isLeft=side==="left", y=feetOf(WP.cross).y;
-  const doorX=DOG_DOOR[isLeft?"left":"right"], outX=byteX+(isLeft?-55:55);
+  const doorX=DOG_DOOR[isLeft?"left":"right"];
   setHouse(side,"open");                      // door is open, no dog sitting
+  dog.style.setProperty("--flip","1");        // facing out toward Byte
   dogPlace(isLeft, doorX, y, false);          // dog appears at the door...
   dog.classList.remove("hide");
   await sleep(30);
   dog.classList.add("dogjump");               // ...and bounds out onto the path
-  dogPlace(isLeft, outX, y, true);
+  dogPlace(isLeft, landX, y, true);
   await sleep(400); dog.classList.remove("dogjump");
 }
 function oneBark(){ dog.classList.add("barking"); playBarkOnce(); setTimeout(()=>dog.classList.remove("barking"), 260); }  // one lively bark
-async function dogBackIn(side){               // dog turns and trots back inside, door shuts
+async function dogBackIn(side, fromX){        // dog turns to face the house, then bounds home in two hops
   const isLeft=side==="left", y=feetOf(WP.cross).y;
+  const door=DOG_DOOR[isLeft?"left":"right"];
+  dog.style.setProperty("--flip","-1");       // turn around to face the house...
+  if(fromX!=null) dogPlace(isLeft, fromX, y, false);   // re-anchor in place so the turn doesn't shift it sideways
+  await sleep(160);                           // ...a beat so the turn reads...
+  const mid = fromX!=null ? (fromX+door)/2 : door;
+  // hop 1 — partway toward the house, still full size
   dog.classList.add("dogjump");
-  dogPlace(isLeft, DOG_DOOR[isLeft?"left":"right"], y, true);
-  await sleep(400); dog.classList.remove("dogjump");
+  dogPlace(isLeft, mid, y, true);
+  await sleep(420);
+  dog.classList.remove("dogjump"); void dog.offsetWidth;   // let the animation restart
+  // hop 2 — shrinks as it scampers off and lands right by the door
+  dog.classList.add("dogjump");
+  dogPlace(isLeft, door, y, true, 84);                     // final, smaller size
+  await sleep(420); dog.classList.remove("dogjump");
   hideDog();
   await houseClose(side);
+  dog.style.setProperty("--flip","1");        // reset facing for next time
 }
 const headPop=$("headPop");
 function showHeadPop(side){            // bubble close to Byte, on the matching side
@@ -431,7 +509,20 @@ function setHouse(side, variant){
 }
 function closeHouses(){ setHouse("left",""); setHouse("right",""); }
 async function houseOpen(side){ setHouse(side,"open"); await sleep(130); setHouse(side,"dog"); }   // door cracks, then the dog pulls it open
-async function houseClose(side){ setHouse(side,"open"); await sleep(130); setHouse(side,""); }      // dog steps back, door shuts
+async function houseClose(side){   // dog steps back, door shuts, house gives a little bounce
+  setHouse(side,"open"); await sleep(130); setHouse(side,"");
+  const el = side==="left" ? houseLeft : houseRight;
+  el.classList.remove("happy"); void el.offsetWidth;   // restart cleanly if a happy hop just played
+  el.classList.add("bounce"); sfxPopOff();
+  await sleep(450); el.classList.remove("bounce");
+}
+async function houseHappy(side){   // the house gives a joyful squash-stretch hop when it gets its parcel
+  const el = side==="left" ? houseLeft : houseRight;
+  sfxBoing();
+  el.classList.add("happy");
+  await sleep(950);
+  el.classList.remove("happy");
+}
 const scanBox=$("scanBox");
 const SCAN={ left:{left:7,top:31,w:17,h:21}, right:{left:77,top:29,w:17,h:21} };  // scan box over each house (% of frame)
 async function scanHouse(isLeft, isCorrect){
@@ -485,7 +576,7 @@ function moveByte(sprite, footX, footY, lilt){     // animated walk — Byte hop
   byteWrap.style.width=b.w+"%";
   byteAnim.classList.add(lilt ? "hop" : "hop-flat");
   return new Promise(resolve=>{
-    let done=false; const fin=()=>{ if(done)return; done=true; byteAnim.classList.remove("hop","hop-flat"); byteWrap.removeEventListener("transitionend",fin); resolve(); };
+    let done=false; const fin=()=>{ if(done)return; done=true; byteAnim.classList.remove("hop","hop-flat"); sfxLand(); byteWrap.removeEventListener("transitionend",fin); resolve(); };
     byteWrap.addEventListener("transitionend",fin); setTimeout(fin,3000);
     requestAnimationFrame(()=>{ byteWrap.style.left=b.left+"%"; byteWrap.style.top=b.top+"%"; });
   });
@@ -511,7 +602,11 @@ async function exitFrame(isLeft){        // after a correct delivery, Byte walks
   if(isLeft){
     await moveByte("left", -280, cf.y);          // keep going left, off the left edge
   } else {
-    await moveByte("right", 2120, cf.y);         // keep going right, off the right edge
+    // right house: turn back, stop at the right vertical road, then drive up it off the top
+    const upX = 1490;                             // centre of the right vertical road
+    await moveByte("left", upX, cf.y);            // turn back (face left) and walk to the right junction
+    setByte("back", upX, cf.y);                   // face up the road
+    await moveByte("back", upX, -340, true);      // drive up the right vertical path, off the top (lilting hop)
   }
   clearInterval(st);
 }
@@ -523,8 +618,8 @@ function say(t){ const wasHidden=!bubble.classList.contains("show"); bubbleText.
   if(bubbleTimer) clearTimeout(bubbleTimer);
   bubbleTimer=setTimeout(()=>bubble.classList.remove("show"), 3500);   // auto-hide a few seconds after speaking
 }
-const COLOR_NAME={ red:"Red", blue:"Blue", pink:"Pink" };
-const COLOR_HEX ={ red:"#e8402c", blue:"#1f93d6", pink:"#e84393" };
+const COLOR_NAME={ red:"Red", blue:"Blue", yellow:"Yellow" };
+const COLOR_HEX ={ red:"#e8402c", blue:"#1f93d6", yellow:"#f0a500" };
 function colorWord(color){  // the house colour, in its own colour, Poppins semi-bold
   return '<span style="font-family:\'Poppins\',sans-serif;font-weight:600;color:'+COLOR_HEX[color]+'">'+COLOR_NAME[color].toUpperCase()+'</span>';
 }
@@ -551,6 +646,25 @@ function sfxPop(){    // micro UI sound — something pops in
   g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.12,t+0.01); g.gain.exponentialRampToValueAtTime(0.001,t+0.14);
   o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+0.16);
 }
+function sfxLand(){   // soft, cushioned "dhumm" landing with a playful little spring-up
+  if(!actx) return; const t=actx.currentTime;
+  // 1) rounded body — gentle pitch drop, soft attack (no click)
+  const o=actx.createOscillator(), g=actx.createGain();
+  o.type="sine"; o.frequency.setValueAtTime(150,t); o.frequency.exponentialRampToValueAtTime(66,t+0.16);
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.24,t+0.03); g.gain.exponentialRampToValueAtTime(0.001,t+0.34);
+  o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+0.36);
+  // 2) soft low "whump" — noise through a low-pass so there's body but no harsh hiss
+  const nb=actx.createBufferSource(); const buf=actx.createBuffer(1,Math.floor(actx.sampleRate*0.08),actx.sampleRate);
+  const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length); nb.buffer=buf;
+  const lp=actx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=380; lp.Q.value=0.7;
+  const ng=actx.createGain(); ng.gain.setValueAtTime(0.13,t); ng.gain.exponentialRampToValueAtTime(0.001,t+0.1);
+  nb.connect(lp); lp.connect(ng); ng.connect(actx.destination); nb.start(t); nb.stop(t+0.11);
+  // 3) playful spring-up blip just after landing — gives Byte a bouncy, toy-like feel
+  const o2=actx.createOscillator(), g2=actx.createGain();
+  o2.type="sine"; o2.frequency.setValueAtTime(300,t+0.1); o2.frequency.exponentialRampToValueAtTime(560,t+0.19);
+  g2.gain.setValueAtTime(0,t+0.1); g2.gain.linearRampToValueAtTime(0.07,t+0.12); g2.gain.exponentialRampToValueAtTime(0.001,t+0.24);
+  o2.connect(g2); g2.connect(actx.destination); o2.start(t+0.1); o2.stop(t+0.26);
+}
 function sfxClick(){  // button press
   if(!actx) return; const t=actx.currentTime, o=actx.createOscillator(), g=actx.createGain();
   o.type="square"; o.frequency.setValueAtTime(520,t); o.frequency.exponentialRampToValueAtTime(860,t+0.05);
@@ -562,6 +676,15 @@ function sfxCollect(){  // score / parcel collected — two-note ding
   [880,1320].forEach((f,i)=>{ const o=actx.createOscillator(), g=actx.createGain(); o.type="sine"; o.frequency.value=f;
     const s=t+i*0.08; g.gain.setValueAtTime(0,s); g.gain.linearRampToValueAtTime(0.16,s+0.01); g.gain.exponentialRampToValueAtTime(0.001,s+0.2);
     o.connect(g); g.connect(actx.destination); o.start(s); o.stop(s+0.22); });
+}
+function sfxBoing(){  // springy, happy bounce — for the house's joyful hop
+  if(!actx) return; const t=actx.currentTime, o=actx.createOscillator(), g=actx.createGain();
+  o.type="sine";
+  o.frequency.setValueAtTime(300,t);
+  o.frequency.exponentialRampToValueAtTime(640,t+0.12);   // spring up...
+  o.frequency.exponentialRampToValueAtTime(440,t+0.34);   // ...settle with a little wobble
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.2,t+0.02); g.gain.exponentialRampToValueAtTime(0.001,t+0.5);
+  o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+0.52);
 }
 function sfxPopOff(){ // micro UI sound — something pops out
   if(!actx) return; const t=actx.currentTime, o=actx.createOscillator(), g=actx.createGain();
@@ -685,7 +808,7 @@ async function nextRound(){
   busy=true; stopLook(); showButtons(false); hideBubble(); highlightTarget(false); hideParcel(); hideDog(); hideHeadPop(); bigBtn.classList.add("hide");
   const tutorial = round<=TUTORIAL_ROUNDS;
   // pick two distinct house colours, set them, and choose the target side
-  const pool=["red","blue","pink"];
+  const pool=["red","blue","yellow"];
   for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
   leftColor=pool[0]; rightColor=pool[1];
   closeHouses();
@@ -748,7 +871,8 @@ async function choose(side){
     setByte(moveSprite, hf.x, hf.y);            // hands go empty exactly as the parcel leaves them
     await tossParcelToDoor(side, hf);           // parcel flies to the door
     setHouse(side, "dogparcel");                // the dog catches and holds the parcel
-    await sleep(750);                           // ...and carries it inside
+    await sleep(550);
+    await houseHappy(side);                     // the house does a joyful little hop
     await houseClose(side);                     // door shuts
     sfxWin(); confetti(); byteAnim.classList.add("cheer");
     await showSuccessOverlay();                 // success popup → parcel flies into the counter
@@ -757,31 +881,44 @@ async function choose(side){
     if(score>=TOTAL_ROUNDS){ endGame(); busy=false; return; }
     bigBtn.classList.remove("hide"); $("btnOverlay").classList.add("show"); busy=false;
   } else {
-    // wrong house — the dog suddenly dashes out of the door onto the path, then barks
+    // wrong house — the dog bursts out and Byte springs back in fear, then the dog lunges
     banner("Oh no! 🚫","#ff5b5b");
-    const toward = isLeft ? -1 : 1;
-    const recoilX = hf.x - toward*135;            // Byte leaps further back (more space from the dog)
+    const back     = isLeft ? 1 : -1;             // direction Byte recoils (away from the house)
+    const recoilX  = hf.x + back*230;             // Byte leaps back toward the path
+    const dogOutX  = recoilX - back*210;          // dog lands on the house-side of Byte — clear gap, no overlap
+    const dogLungeX= recoilX - back*185;          // dog lunges in closer on the 2nd bark
+    const groundY  = feetOf(WP.cross).y;
     const backParcel = isLeft ? "rightParcel" : "leftParcel";
-    await dogRushOut(side, hf.x);                 // dog bounds out onto the path
-    await sleep(100);
 
-    // the dog barks 6 quick times so it doesn't look frozen
+    // BARK 1 — dog leaps out of the door while Byte springs back: they never overlap
     byteAnim.classList.add("bump"); sfxFail();
-    let byteReturning=null;
-    for(let i=0;i<6;i++){
-      oneBark();
-      if(i===0) await nudge(recoilX, hf.y, 230);  // Byte leaps back in fear on the first bark
-      if(i===3){                                  // on the 4th bark, Byte turns and runs back
-        byteAnim.classList.remove("bump");
-        setByte(backParcel, recoilX, hf.y);
-        travel(isLeft ? "left-back" : "right-back");
-        const t2=(sfxHop(),setInterval(sfxHop,420));
-        byteReturning = moveByte(backParcel, cf.x, cf.y).then(()=>{ clearInterval(t2); stopMoveSpeak(); });
-      }
-      await sleep(330);
-    }
+    dog.classList.add("barking"); playBarkOnce();
+    const recoilP = nudge(recoilX, hf.y, 360);    // Byte recoils in fear...
+    await dogRushOut(side, dogOutX);              // ...dog bounds out beside him (not on top)
+    await recoilP;
+    await sleep(650);
+    dog.classList.remove("barking");
+    await sleep(450);
+
+    // BARK 2 — the dog lunges toward Byte to attack
+    dog.classList.add("barking"); playBarkOnce();
+    dogPlace(isLeft, dogLungeX, groundY, true);
+    await sleep(1100);
+    dog.classList.remove("barking");
+    await sleep(450);
+
+    // BARK 3 — Byte turns and runs home as the dog gives its last bark
+    dog.classList.add("barking"); playBarkOnce();
     byteAnim.classList.remove("bump");
-    await dogBackIn(side);                         // dog turns back and returns into the house
+    setByte(backParcel, recoilX, hf.y);
+    travel(isLeft ? "left-back" : "right-back");
+    const t2=(sfxHop(),setInterval(sfxHop,420));
+    const byteReturning = moveByte(backParcel, cf.x, cf.y).then(()=>{ clearInterval(t2); stopMoveSpeak(); });
+    await sleep(1100);
+    dog.classList.remove("barking");
+
+    // the dog finishes its last bark, then turns and trots back into the house
+    await dogBackIn(side, dogLungeX);
     await byteReturning;                           // Byte reaches the intersection
     travel("none");
     setByte("back", cf.x, cf.y); byteAnim.classList.add("idle");
