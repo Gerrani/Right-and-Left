@@ -754,8 +754,8 @@ function sfxHop(){   // punchy cartoon boing + soft tap, one per jump
   o2.connect(g2); g2.connect(actx.destination); o2.start(t); o2.stop(t+0.1);
 }
 function scanBeep(){ if(!actx) return; tone(740,0,.07,"square",.12); tone(990,.12,.07,"square",.12); tone(1320,.24,.09,"square",.12); }
-/* Real recorded bark (drop a file at Assets/dog-bark.mp3). Falls back to synth if missing. */
-const barkAudio = new Audio("Assets/dog%20bark.ogg");
+/* Real recorded bark from Audio/dog bark.ogg. Falls back to synth if missing. */
+const barkAudio = new Audio("Audio/dog%20bark.ogg");
 barkAudio.preload = "auto";
 function playBarkOnce(){
   try{
