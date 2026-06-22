@@ -25,8 +25,8 @@
   #bg{ width:100%; height:100%; display:block; user-select:none; pointer-events:none; }
   .house{ position:absolute; width:13.33%; height:auto; z-index:2; pointer-events:none; transform-origin:bottom center; }
   .house.barking{ animation:dogBark .28s ease-in-out infinite; }
-  #houseLeft{ left:5.06%; top:28.61%; }
-  #houseRight{ left:85.51%; top:28.61%; transform:scaleX(-1); }
+  #houseLeft{ left:5.06%; top:28.61%; filter:drop-shadow(-16px 7px 8px rgba(0,0,0,.34)); }
+  #houseRight{ left:85.51%; top:28.61%; transform:scaleX(-1); filter:drop-shadow(16px 7px 8px rgba(0,0,0,.34)); } /* +x flips to the left */
   #houseRight.barking{ animation:dogBarkFlip .28s ease-in-out infinite; }
   @keyframes dogBarkFlip{ 0%,100%{ transform:scaleX(-1); } 45%{ transform:scaleX(-1) scale(1.08,.93); } }
   /* happy little squash-and-stretch hop when the house receives its parcel */
@@ -124,22 +124,34 @@
   /* Byte — positioned by foot point, native size */
   #byteWrap{ position:absolute; left:0; top:0; transition:left 2.6s linear, top 2.6s linear; z-index:5; }
   #byteAnim{ width:100%; transition:transform .2s; }
+  /* detailed ground shadow under Byte — grounded oval that shrinks, fades & softens as he lifts off */
+  #byteShadow{ position:absolute; left:50%; top:74%; transform:translate(-50%,-50%) scale(1); z-index:0; pointer-events:none;
+    width:74%; height:17%; border-radius:50%; will-change:transform,opacity,filter; filter:blur(2.5px);
+    background:radial-gradient(ellipse at 50% 50%, rgba(0,0,0,.5) 0%, rgba(0,0,0,.36) 38%, rgba(0,0,0,.14) 64%, rgba(0,0,0,0) 82%); }
+  #byteShadow.sh-leap{ animation:shadowLeap 430ms linear; }
+  /* tight & dark on the ground · expands & lightens at the apex */
+  @keyframes shadowLeap{
+    0%      { transform:translate(-50%,-50%) scale(.95); opacity:1;  filter:blur(2.5px); }
+    42%     { transform:translate(-50%,-50%) scale(1.16); opacity:.55; filter:blur(4px); }
+    80%,100%{ transform:translate(-50%,-50%) scale(.95); opacity:1;  filter:blur(2.5px); }
+  }
+  /* whole-screen ambient shade — heavier toward the closer right & bottom */
+  #screenShade{ position:fixed; inset:0; z-index:12; pointer-events:none;
+    background:radial-gradient(135% 125% at 30% 22%, rgba(0,0,0,0) 45%, rgba(0,0,0,.28) 100%); }
   #byteAnim.bump{ animation:bump .7s ease-in-out; }
   @keyframes bump{ 0%,100%{ transform:rotate(0);} 15%{ transform:rotate(-5deg);} 35%{ transform:rotate(4deg);} 55%{ transform:rotate(-3deg);} 75%{ transform:rotate(2deg);} }
-  #byteAnim.hop{ animation:hop .84s ease-in-out infinite; transform-origin:50% 80%; }
-  @keyframes hop{
-    0%  { transform:translateY(0) rotate(-6deg); }   /* land, tilted one way */
-    25% { transform:translateY(-15%) rotate(0deg); } /* peak, upright */
-    50% { transform:translateY(0) rotate(6deg); }    /* land, tilted the other way */
-    75% { transform:translateY(-15%) rotate(0deg); } /* peak, upright */
-    100%{ transform:translateY(0) rotate(-6deg); }   /* back to the first tilt */
+  /* ONE leap per hop: he advances only while airborne (15–68%), grounded the rest of the time */
+  #byteAnim.leap{ animation:leap 430ms linear; transform-origin:50% 90%; }
+  @keyframes leap{   /* smooth parabolic hop — clean arc, soft landing, no squash pop */
+    0%   { transform:translateY(0);   animation-timing-function:cubic-bezier(.2,.65,.35,1); }   /* lift, decelerate to apex */
+    42%  { transform:translateY(-13%); animation-timing-function:cubic-bezier(.65,0,.8,.55); }  /* apex, accelerate down softly */
+    80%  { transform:translateY(0); }   /* land */
+    100% { transform:translateY(0); }   /* brief grounded settle */
   }
-  #byteAnim.hop-flat{ animation:hopFlat .42s ease-in-out infinite; }
-  @keyframes hopFlat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-14%); } }
   #byteAnim.cheer{ animation:cheer .55s ease infinite; }
   @keyframes cheer{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-12%);} }
-  #byteAnim.idle{ animation:idle 1.2s ease-in-out infinite; }
-  @keyframes idle{ 0%,100%{ transform:scale(1);} 50%{ transform:scale(.98);} }
+  #byteAnim.idle{ animation:idle 2.4s ease-in-out infinite; transform-origin:50% 90%; }
+  @keyframes idle{ 0%,100%{ transform:scaleY(1);} 50%{ transform:scaleY(1.018);} }   /* gentle breathe-up, not a crouch */
   #byte{ width:100%; height:auto; display:block; filter:drop-shadow(0 6px 6px rgba(0,0,0,.3)); }
   #parcel{ position:absolute; z-index:4; pointer-events:none; filter:drop-shadow(0 4px 4px rgba(0,0,0,.3)); }
   #dog{ position:absolute; z-index:6; pointer-events:none; filter:drop-shadow(0 5px 5px rgba(0,0,0,.35)); transform-origin:bottom center; transform:scaleX(var(--flip,1)); }
@@ -262,30 +274,44 @@
     background:linear-gradient(0deg, rgba(0,0,0,.6) 0%, rgba(0,0,0,.25) 45%, rgba(0,0,0,0) 100%);
     opacity:0; transition:opacity .4s; }
   #btnOverlay.show{ opacity:1; }
+  /* drifting clouds (subtle ambience) */
+  .cloud{ position:absolute; height:5%; background:rgba(255,255,255,.6); border-radius:50%;
+    filter:blur(7px); pointer-events:none; z-index:11; animation:drift linear infinite; }
+  .cloud.c1{ top:7%;  width:12%; opacity:.42; animation-duration:46s; }
+  .cloud.c2{ top:16%; width:8%;  opacity:.3;  animation-duration:62s; animation-delay:-24s; }
+  .cloud.c3{ top:4%;  width:10%; opacity:.36; animation-duration:54s; animation-delay:-38s; }
+  @keyframes drift{ from{ left:-16%; } to{ left:116%; } }
+  /* intro guide arrow that demonstrates the route */
+  #introGuide{ position:absolute; left:49%; top:88%; transform:translate(-50%,-50%);
+    width:clamp(36px,5vw,60px); height:clamp(36px,5vw,60px); z-index:13; opacity:0; pointer-events:none;
+    filter:drop-shadow(0 3px 4px rgba(0,0,0,.32)); transition:left .8s ease-in-out, top .8s ease-in-out, opacity .3s; }
+  #introGuide svg{ width:100%; height:100%; display:block; transition:transform .3s ease; }
+  /* full-screen announcement transition */
+  #announce{ position:fixed; inset:0; z-index:35; display:flex; align-items:center; justify-content:center;
+    background:rgba(20,15,40,.5); opacity:0; pointer-events:none; transition:opacity .4s; }
+  #announce.show{ opacity:1; }
+  #announceText{ font-family:"Poppins",sans-serif; font-weight:800; color:#fff; text-align:center;
+    font-size:clamp(28px,6vw,62px); padding:0 6vw; line-height:1.22; text-shadow:0 4px 0 rgba(0,0,0,.32);
+    transform:scale(.7); transition:transform .45s cubic-bezier(.34,1.7,.5,1); }
+  #announce.show #announceText{ transform:scale(1); }
   #banner{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; z-index:15; }
   #bannerText{ font-size:clamp(40px,11vw,120px); font-weight:900; opacity:0; transform:scale(.4);
     transition:transform .35s cubic-bezier(.3,1.7,.5,1), opacity .35s; text-shadow:0 5px 0 rgba(0,0,0,.3); }
   #bannerText.show{ opacity:1; transform:scale(1); }
   .confetti{ position:fixed; width:11px; height:17px; top:-25px; border-radius:2px; z-index:14; pointer-events:none; }
 
-  /* Big, bouncy kid-friendly PLAY button on the start screen (no text) */
+  /* Big, bouncy kid-friendly PLAY button on the start screen — uses the play-button art */
   #startBtn{
-    position:fixed; left:50%; bottom:12%; transform:translateX(-50%);
-    width:clamp(104px,24vw,156px); aspect-ratio:1; padding:0; cursor:pointer; z-index:20;
-    border:6px solid #fff; border-radius:50%;
+    position:fixed; left:50%; bottom:3%; transform:translateX(-50%);
+    width:clamp(140px,29vw,206px); aspect-ratio:1; padding:0; cursor:pointer; z-index:20;
+    border:none; background:none; box-shadow:none;
     display:flex; align-items:center; justify-content:center;
-    background:radial-gradient(circle at 50% 30%, #9bef66 0%, #5fce3e 46%, #38aa20 100%);
-    box-shadow:0 0 0 6px rgba(40,130,26,.30), 0 12px 0 #2c8c1e, 0 18px 24px rgba(0,0,0,.35),
-               inset 0 8px 10px rgba(255,255,255,.55), inset 0 -12px 14px rgba(0,0,0,.18);
     animation:startPulse 1.15s ease-in-out infinite;
   }
-  #startBtn .playTri{ width:44%; height:44%; margin-left:7%; filter:drop-shadow(0 3px 3px rgba(0,0,0,.3)); }
-  #startBtn::before{ content:""; position:absolute; inset:-14px; border-radius:50%; pointer-events:none;
-    border:4px solid rgba(255,255,255,.85); animation:startRing 1.6s ease-out infinite; }
+  #startBtn img{ width:100%; height:100%; object-fit:contain; display:block;
+    filter:drop-shadow(0 8px 12px rgba(120,60,10,.4)); pointer-events:none; }
   #startBtn:hover{ animation:none; transform:translateX(-50%) scale(1.07); }
-  #startBtn:active{ animation:none; transform:translateX(-50%) translateY(6px) scale(.97);
-    box-shadow:0 0 0 6px rgba(40,130,26,.30), 0 4px 0 #2c8c1e, 0 8px 14px rgba(0,0,0,.35),
-               inset 0 8px 10px rgba(255,255,255,.55), inset 0 -12px 14px rgba(0,0,0,.18); }
+  #startBtn:active{ animation:none; transform:translateX(-50%) scale(.95); }
   @keyframes startPulse{ 0%,100%{ transform:translateX(-50%) scale(1); } 50%{ transform:translateX(-50%) scale(1.07); } }
   @keyframes startRing{ 0%{ transform:scale(.8); opacity:.7; } 100%{ transform:scale(1.55); opacity:0; } }
 
@@ -302,7 +328,7 @@
     <!-- START SCREEN -->
     <div id="startScreen" class="screen">
       <img class="full" src="Assets/Start.webp" alt="Start" />
-      <button id="startBtn" aria-label="Play"><svg class="playTri" viewBox="0 0 24 24"><path d="M8 5 L19 12 L8 19 Z" fill="#fff"/></svg></button>
+      <button id="startBtn" aria-label="Play"><img src="Assets/play%20button.png" alt="Play" /></button>
     </div>
 
     <!-- GAME SCREEN -->
@@ -318,11 +344,13 @@
         <div id="travelator" class="hide"></div>
         <div id="travLeft"  class="travH hide"></div>
         <div id="travRight" class="travH hide"></div>
-        <div id="byteWrap"><div id="byteAnim"><img id="byte" src="Assets/Byte%20Back.png" alt="Byte" /></div></div>
+        <div id="byteWrap"><div id="byteShadow"></div><div id="byteAnim"><img id="byte" src="Assets/Byte%20Back.png" alt="Byte" /></div></div>
         <img id="parcel" src="Assets/Parcel.png" alt="parcel" class="hide" />
         <img id="dog" alt="dog" class="hide" />
         <div id="scanBox"><div id="scanLine"></div></div>
         <div id="headPop"></div>
+        <div id="introGuide"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 10 L80 48 L62 48 L62 88 L38 88 L38 48 L20 48 Z" fill="#ffffff" stroke="#e8702a" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
+        <div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>
       </div>
       <div id="score"><img src="Assets/Parcel.png" alt="parcels"> 0</div>
       <div id="bubble"><span id="bubbleText"></span></div>
@@ -331,6 +359,8 @@
       <button id="rightBtn" class="pill" disabled>Right<span class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 12H17"/><path d="M13 7.2 17.8 12 13 16.8"/></svg></span></button>
       <button id="bigBtn" class="pill center hide">Next<span class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 12H17"/><path d="M13 7.2 17.8 12 13 16.8"/></svg></span></button>
       <div id="banner"><div id="bannerText"></div></div>
+      <div id="announce"><div id="announceText"></div></div>
+      <div id="screenShade"></div>
 
       <div id="successOverlay">
         <div id="successCard">
@@ -385,7 +415,7 @@ function feetOf(wp){ const [w,h]=NATIVE[wp.sprite], [ax,ay]=ANCHOR[wp.sprite]; r
 /* ===================== Elements ===================== */
 const $=id=>document.getElementById(id);
 const startScreen=$("startScreen"), gameScreen=$("gameScreen"), endScreen=$("endScreen");
-const byteWrap=$("byteWrap"), byteAnim=$("byteAnim"), byte=$("byte");
+const byteWrap=$("byteWrap"), byteAnim=$("byteAnim"), byte=$("byte"), byteShadow=$("byteShadow");
 const bubble=$("bubble"), bubbleText=$("bubbleText"), leftBtn=$("leftBtn"), rightBtn=$("rightBtn"), bigBtn=$("bigBtn");
 const againBtn=$("againBtn"), scoreEl=$("score"), endScoreEl=$("endScore"), bannerText=$("bannerText");
 const parcel=$("parcel");
@@ -549,7 +579,7 @@ function travel(which){  // moving escalator arrows removed — keep all hidden 
 /* ===================== Config + state ===================== */
 const TOTAL_ROUNDS=5, TUTORIAL_ROUNDS=2;
 const PARCEL_ICON='<img src="Assets/Parcel.png" alt="parcels">';
-let target="left", targetColor="blue", score=0, round=0, busy=false, lookTimer=[], curSprite="back";
+let target="left", targetColor="blue", score=0, round=0, busy=false, lookTimer=[], curSprite="back", lastFootX=0, lastFootY=0;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
 /* ===================== Byte placement (foot-anchored) ===================== */
@@ -563,23 +593,40 @@ function setByte(sprite, footX, footY){           // instant placement
   byteWrap.style.transition="none";
   byteWrap.style.width=b.w+"%"; byteWrap.style.left=b.left+"%"; byteWrap.style.top=b.top+"%";
   byteWrap.offsetHeight; byteWrap.style.transition="";
+  lastFootX=footX; lastFootY=footY;
 }
 async function nudge(footX, footY, dur){          // quick small move, keeps current sprite
   const b=topLeftFor(curSprite,footX,footY);
   byteWrap.style.transition=`left ${dur}ms ease-out, top ${dur}ms ease-out`;
   byteWrap.style.left=b.left+"%"; byteWrap.style.top=b.top+"%";
+  lastFootX=footX; lastFootY=footY;
   await sleep(dur+20); byteWrap.style.transition="";
 }
-function moveByte(sprite, footX, footY, lilt){     // animated walk — Byte hops while moving (lilt only when vertical)
+/* ---- discrete hopping locomotion: Byte advances ONLY while airborne, both vertical & horizontal ---- */
+const HOP_STEP=120;                               // frame-px advanced per hop (smaller = shorter hops)
+const HOP_CROUCH=0, HOP_AIR=345, HOP_TOTAL=430;   // ms: airborne window + brief settle (matches @keyframes leap: arc 0–80%)
+async function moveByte(sprite, footX, footY){
   byte.src=SPRITE[sprite]; curSprite=sprite;
   const b=topLeftFor(sprite,footX,footY);
   byteWrap.style.width=b.w+"%";
-  byteAnim.classList.add(lilt ? "hop" : "hop-flat");
-  return new Promise(resolve=>{
-    let done=false; const fin=()=>{ if(done)return; done=true; byteAnim.classList.remove("hop","hop-flat"); sfxLand(); byteWrap.removeEventListener("transitionend",fin); resolve(); };
-    byteWrap.addEventListener("transitionend",fin); setTimeout(fin,3000);
-    requestAnimationFrame(()=>{ byteWrap.style.left=b.left+"%"; byteWrap.style.top=b.top+"%"; });
-  });
+  const sx=lastFootX, sy=lastFootY;
+  const dist=Math.hypot(footX-sx, footY-sy);
+  const hops=Math.max(1, Math.round(dist/HOP_STEP));
+  for(let i=1;i<=hops;i++){
+    const tx=sx+(footX-sx)*i/hops, ty=sy+(footY-sy)*i/hops;
+    const tl=topLeftFor(sprite,tx,ty);
+    // restart the leap + shadow for this hop
+    byteAnim.classList.remove("leap"); byteShadow.classList.remove("sh-leap"); void byteAnim.offsetWidth;
+    byteAnim.classList.add("leap"); byteShadow.classList.add("sh-leap");
+    // advance ONLY while airborne, at CONSTANT horizontal speed (linear) → true parabola with the vertical arc
+    byteWrap.style.transition=`left ${HOP_AIR}ms linear ${HOP_CROUCH}ms, top ${HOP_AIR}ms linear ${HOP_CROUCH}ms`;
+    requestAnimationFrame(()=>{ byteWrap.style.left=tl.left+"%"; byteWrap.style.top=tl.top+"%"; });
+    setTimeout(sfxStep, HOP_CROUCH+HOP_AIR);    // one soft tap on landing
+    await sleep(HOP_TOTAL);
+  }
+  byteAnim.classList.remove("leap"); byteShadow.classList.remove("sh-leap");
+  byteWrap.style.transition="";
+  lastFootX=footX; lastFootY=footY;
 }
 
 /* ===================== Look both ways ===================== */
@@ -598,17 +645,11 @@ const TOP_ROAD_X = 1485;                 // x of the vertical road that exits th
 async function exitFrame(isLeft){        // after a correct delivery, Byte walks off-frame
   byteAnim.classList.remove("idle");
   const cf=feetOf(WP.cross);
-  const st=(sfxHop(),setInterval(sfxHop,420));
   if(isLeft){
     await moveByte("left", -280, cf.y);          // keep going left, off the left edge
   } else {
-    // right house: turn back, stop at the right vertical road, then drive up it off the top
-    const upX = 1490;                             // centre of the right vertical road
-    await moveByte("left", upX, cf.y);            // turn back (face left) and walk to the right junction
-    setByte("back", upX, cf.y);                   // face up the road
-    await moveByte("back", upX, -340, true);      // drive up the right vertical path, off the top (lilting hop)
+    await moveByte("right", 2200, cf.y);         // keep going straight right, off the right edge
   }
-  clearInterval(st);
 }
 
 /* ===================== UI helpers ===================== */
@@ -639,7 +680,12 @@ function tone(f,s,d,t="sine",v=0.2){ if(!actx)return; const o=actx.createOscilla
   g.gain.setValueAtTime(0,x);g.gain.linearRampToValueAtTime(v,x+.02);g.gain.exponentialRampToValueAtTime(.001,x+d);o.start(x);o.stop(x+d+.05); }
 function sfxWin(){ [523,659,784,1046].forEach((f,i)=>tone(f,i*.12,.25,"triangle",.25)); }
 function sfxFail(){ tone(330,0,.18,"sawtooth",.2); tone(220,.16,.3,"sawtooth",.2); }
-function sfxStep(){ tone(700,0,.06,"square",.05); }
+function sfxStep(){   // soft, gentle landing tap for each little hop
+  if(!actx) return; const t=actx.currentTime, o=actx.createOscillator(), g=actx.createGain();
+  o.type="sine"; o.frequency.setValueAtTime(330,t); o.frequency.exponentialRampToValueAtTime(180,t+0.08);
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.05,t+0.008); g.gain.exponentialRampToValueAtTime(0.001,t+0.12);
+  o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+0.13);
+}
 function sfxPop(){    // micro UI sound — something pops in
   if(!actx) return; const t=actx.currentTime, o=actx.createOscillator(), g=actx.createGain();
   o.type="sine"; o.frequency.setValueAtTime(680,t); o.frequency.exponentialRampToValueAtTime(1150,t+0.08);
@@ -797,9 +843,76 @@ function confetti(){
 function banner(t,c){ bannerText.textContent=t; bannerText.style.color=c; bannerText.classList.add("show"); setTimeout(()=>bannerText.classList.remove("show"),1600); }
 
 /* ===================== Game flow ===================== */
+const introGuide=$("introGuide"), announceEl=$("announce"), announceText=$("announceText");
+let reuseColors=false;
+function setGuide(leftPct, topPct, deg){ introGuide.style.left=leftPct+"%"; introGuide.style.top=topPct+"%";
+  const s=introGuide.querySelector("svg"); if(s) s.style.transform="rotate("+deg+"deg)"; }   // deg: 0 up · -90 left · 90 right
+async function announce(text){    // full-screen transition card
+  announceText.textContent=text; announceEl.classList.add("show"); sfxPop(); speak(text);
+  await sleep(2300); announceEl.classList.remove("show"); await sleep(450);
+}
+function pickColors(){            // choose two distinct house colours and show the houses
+  const pool=["red","blue","yellow"];
+  for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+  leftColor=pool[0]; rightColor=pool[1]; closeHouses();
+}
+
+/* ---- gentle, subtle background music: soft synth pad + a light bell, slow chord loop ---- */
+let musicTimer=null, musicGain=null;
+const MUSIC_CHORDS=[[262,330,392],[196,294,392],[220,277,330],[174,220,261]];  // C · G · Am · F (soft, warm)
+function startMusic(){
+  if(!actx || musicTimer) return;
+  musicGain=actx.createGain(); musicGain.gain.value=0.05; musicGain.connect(actx.destination);
+  let i=0;
+  const playChord=()=>{
+    if(!actx) return; const t=actx.currentTime, ch=MUSIC_CHORDS[i++ % MUSIC_CHORDS.length];
+    ch.forEach((f)=>{ const o=actx.createOscillator(), g=actx.createGain();      // soft sustained pad
+      o.type="sine"; o.frequency.value=f;
+      g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.5,t+0.9); g.gain.linearRampToValueAtTime(0.0001,t+3.8);
+      o.connect(g); g.connect(musicGain); o.start(t); o.stop(t+3.9); });
+    const b=actx.createOscillator(), bg=actx.createGain();                         // gentle bell on the root, an octave up
+    b.type="triangle"; b.frequency.value=ch[0]*2;
+    bg.gain.setValueAtTime(0,t+0.05); bg.gain.linearRampToValueAtTime(0.16,t+0.12); bg.gain.exponentialRampToValueAtTime(0.0001,t+1.6);
+    b.connect(bg); bg.connect(musicGain); b.start(t+0.05); b.stop(t+1.7);
+  };
+  playChord(); musicTimer=setInterval(playChord, 3400);
+}
+function stopMusic(){ if(musicTimer){ clearInterval(musicTimer); musicTimer=null; } if(musicGain){ musicGain.gain.value=0; musicGain=null; } }
+
 function startGame(){
   score=0; round=0; scoreEl.innerHTML=PARCEL_ICON+" 0";
   startScreen.classList.add("hide"); endScreen.classList.add("hide"); gameScreen.classList.remove("hide");
+  startMusic();                                   // soft background music
+  introSequence();
+}
+
+async function introSequence(){
+  busy=true; showButtons(false); hideBubble(); bigBtn.classList.add("hide"); hideParcel(); hideDog(); highlightTarget(false);
+  pickColors();                                   // show the round-1 houses so the demo matches
+  const sf=feetOf(WP.start);
+  setByte("back", sf.x, FRAME.H+260);             // Byte waits just below the bottom of the frame
+
+  // 1) a little guide arrow demonstrates the route (moves only straight: up, then sideways)
+  introGuide.style.transition="none"; setGuide(49,86,0); void introGuide.offsetWidth; // snap to the start at the bottom (no slide-in)
+  introGuide.style.transition=""; introGuide.style.opacity="1"; await sleep(450);
+  say("Byte drives up the path to the crossing.");
+  await speak("Byte drives up the path to the crossing");
+  setGuide(49,52,0); await sleep(1000);           // straight up the path to the junction
+  setGuide(30,52,-90);                            // straight left along the road (symmetric: 49-19)
+  say("Turn LEFT to reach the "+colorWord(leftColor)+" house.");
+  await speak("Turn left to reach the "+leftColor+" house"); await sleep(450);
+  setGuide(68,52,90);                             // straight across to the right (symmetric: 49+19)
+  say("Turn RIGHT to reach the "+colorWord(rightColor)+" house.");
+  await speak("Turn right to reach the "+rightColor+" house"); await sleep(450);
+  introGuide.style.opacity="0"; hideBubble(); await sleep(300);
+
+  // 2) announcement transition
+  await announce("Help Byte deliver the parcels! 📦");
+
+  // 3) Byte walks in from the bottom of the frame (no lilt on the way in)
+  await moveByte("back", sf.x, sf.y);
+
+  reuseColors=true; busy=false;
   nextRound();
 }
 
@@ -807,11 +920,8 @@ async function nextRound(){
   round++;
   busy=true; stopLook(); showButtons(false); hideBubble(); highlightTarget(false); hideParcel(); hideDog(); hideHeadPop(); bigBtn.classList.add("hide");
   const tutorial = round<=TUTORIAL_ROUNDS;
-  // pick two distinct house colours, set them, and choose the target side
-  const pool=["red","blue","yellow"];
-  for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
-  leftColor=pool[0]; rightColor=pool[1];
-  closeHouses();
+  // pick two distinct house colours (round 1 reuses the colours shown in the intro)
+  if(reuseColors){ reuseColors=false; } else { pickColors(); }
   target = Math.random()<0.5 ? "left" : "right";
   targetColor = target==="left" ? leftColor : rightColor;
 
@@ -824,9 +934,7 @@ async function nextRound(){
   await speak("Take the parcel to the "+targetColor+" house");   // let the line finish
   await sleep(250);
   const cf=feetOf(WP.cross);
-  const st=(sfxHop(),setInterval(sfxHop,420));
-  await moveByte("back", cf.x, cf.y, true);    // drive up to the intersection (lilting hop)
-  clearInterval(st);
+  await moveByte("back", cf.x, cf.y);          // hop up to the intersection
 
   travel("none");                               // reached intersection → escalator off
   await sleep(400);                             // settle a beat after arriving
@@ -852,9 +960,8 @@ async function choose(side){
   await sleep(350);
   travel(isLeft ? "left" : "right");           // escalator on, in the travel direction
   startMoveSpeak(isLeft ? "Moving left" : "Moving right");   // repeats until he arrives
-  const st=(sfxHop(),setInterval(sfxHop,420));
-  await moveByte(parcelSprite, hf.x, hf.y);     // walk to the house carrying the parcel
-  clearInterval(st); stopMoveSpeak();
+  await moveByte(parcelSprite, hf.x, hf.y);     // hop to the house carrying the parcel
+  stopMoveSpeak();
   travel("none");
 
   // arrived — Byte holds the parcel and calls out
@@ -912,8 +1019,7 @@ async function choose(side){
     byteAnim.classList.remove("bump");
     setByte(backParcel, recoilX, hf.y);
     travel(isLeft ? "left-back" : "right-back");
-    const t2=(sfxHop(),setInterval(sfxHop,420));
-    const byteReturning = moveByte(backParcel, cf.x, cf.y).then(()=>{ clearInterval(t2); stopMoveSpeak(); });
+    const byteReturning = moveByte(backParcel, cf.x, cf.y).then(()=>{ stopMoveSpeak(); });
     await sleep(1100);
     dog.classList.remove("barking");
 
