@@ -516,10 +516,10 @@ async function tossParcelToDog(isLeft, fromX, dogX, feetY){   // Byte lobs the p
   parcel.style.top=((startY-h)/FRAME.H*100)+"%";
   parcel.classList.remove("hide"); parcel.offsetHeight;
   sfxThrow();
-  parcel.style.transition="left .5s ease-in, top .5s cubic-bezier(.4,-.4,.7,1)";   // gentle arc
+  parcel.style.transition="left .38s ease-in, top .38s cubic-bezier(.4,-.4,.7,1)";   // quick arc
   parcel.style.left=((endX-w/2)/FRAME.W*100)+"%";
   parcel.style.top=((endY-h)/FRAME.H*100)+"%";
-  await sleep(500);
+  await sleep(390);
 }
 /* The smooth "dog accepts the parcel" scene — the door is already open when this runs. */
 async function dogCatchScene(side, hf){
@@ -528,29 +528,29 @@ async function dogCatchScene(side, hf){
   const doorY=feetY-115;                      // the door threshold sits ABOVE the road, up at the house
   const dogX=hf.x+(isLeft?-150:150);          // stand a clear gap from Byte so they never overlap, out on the path
   dog.style.setProperty("--flip", isLeft ? "-1" : "1"); dog.style.opacity="";   // mirror at the left house so it faces Byte & holds the parcel on the toss side
-  // door is open — the dog trots OUT of the doorway: medium up at the door → full size on the path (quick, smooth)
-  placeDog(doorCx, doorY, false, false, 54);
+
+  // 1) door is already open → dog comes OUT of the house onto the road (medium up at the door → full size, quick)
+  placeDog(doorCx, doorY, false, false, 52);
   dog.classList.remove("hide");
   await sleep(20);
   placeDog(dogX, feetY, true, false, DOG_VIS);
-  if(isLeft) playBarkOnce();                  // one happy bark (left house only)
-  await sleep(320);
+  await sleep(300);
 
-  say("Here you go! 🎉"); await speak("Here you go!");
-  setByte(isLeft?"left":"right", hf.x, hf.y); // hands go empty exactly as the parcel leaves them
+  // 2) Byte hands over → the dog HOLDS the parcel (same size, no pop). VO fires but doesn't stall the motion
+  say("Here you go! 🎉"); speak("Here you go!");
+  setByte(isLeft?"left":"right", hf.x, hf.y);  // hands go empty exactly as the parcel leaves them
   await tossParcelToDog(isLeft, hf.x, dogX, feetY);
-
-  parcel.classList.add("hide");               // caught! — SAME size, simply now holding the parcel
+  parcel.classList.add("hide");
   placeDog(dogX, feetY, false, true, DOG_VIS);
-  void dog.offsetWidth; dog.classList.add("dogjump");   // one happy catch hop (no resize)
-  if(isLeft) playBarkOnce();                  // happy bark (left house only)
   sfxCollect();
-  await sleep(380); dog.classList.remove("dogjump");
-  await sleep(80);
+  await sleep(200);
 
-  // straight back to the doorway FAST, barely shrinking; the instant it reaches the door it flips to House + Dog + Parcel
-  placeDog(doorCx, doorY, true, true, 66);
-  await sleep(230);
+  // 3) JUMP back to the house, parcel held
+  dog.classList.add("dogjump");
+  placeDog(doorCx, doorY, true, true, 50);
+  await sleep(380); dog.classList.remove("dogjump");
+
+  // 4) SITTING at the house with the parcel (composite); choose() then makes it go inside + closes the door
   setHouse(side, "dogparcel");
   hideDog();
 }
