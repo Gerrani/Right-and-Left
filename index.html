@@ -124,29 +124,42 @@
   /* Byte — positioned by foot point, native size */
   #byteWrap{ position:absolute; left:0; top:0; transition:left 2.6s linear, top 2.6s linear; z-index:5; }
   #byteAnim{ width:100%; transition:transform .2s; }
-  /* detailed ground shadow under Byte — grounded oval that shrinks, fades & softens as he lifts off */
-  #byteShadow{ position:absolute; left:50%; top:74%; transform:translate(-50%,-50%) scale(1); z-index:0; pointer-events:none;
-    width:74%; height:17%; border-radius:50%; will-change:transform,opacity,filter; filter:blur(2.5px);
-    background:radial-gradient(ellipse at 50% 50%, rgba(0,0,0,.5) 0%, rgba(0,0,0,.36) 38%, rgba(0,0,0,.14) 64%, rgba(0,0,0,0) 82%); }
-  #byteShadow.sh-leap{ animation:shadowLeap 430ms linear; }
-  /* tight & dark on the ground · expands & lightens at the apex */
-  @keyframes shadowLeap{
-    0%      { transform:translate(-50%,-50%) scale(.95); opacity:1;  filter:blur(2.5px); }
-    42%     { transform:translate(-50%,-50%) scale(1.16); opacity:.55; filter:blur(4px); }
-    80%,100%{ transform:translate(-50%,-50%) scale(.95); opacity:1;  filter:blur(2.5px); }
+  /* Soft, realistic contact shadow: a single gently-blurred pool under Byte's feet (every facing).
+     Soft graduated edge, no hard ring — reads as a natural shadow, not a decal. */
+  #byteShadow{ position:absolute; left:50%; top:74%; transform:translate(-50%,-50%); z-index:0; pointer-events:none;
+    width:46%; height:12.5%; will-change:transform; filter:blur(5px);
+    background:radial-gradient(ellipse 50% 50% at 50% 50%,
+      rgba(0,0,0,.34), rgba(0,0,0,.2) 42%, rgba(0,0,0,.07) 64%, rgba(0,0,0,0) 78%); }
+  /* while walking: a soft breath only (scale), so it feels alive but never flickers or hardens */
+  #byteShadow.sh-walk{ animation:shadowWalk .9s ease-in-out infinite; }
+  @keyframes shadowWalk{
+    0%,50%,100%{ transform:translate(-50%,-50%) scale(1);    }
+    25%,75%   { transform:translate(-50%,-50%) scale(.96);   }
   }
+  /* side (horizontal) walk: a touch smaller & lighter so Byte never looks like he's floating */
+  #byteShadow.sh-side{ width:38%; height:10.5%; opacity:.8; }
   /* whole-screen ambient shade — heavier toward the closer right & bottom */
   #screenShade{ position:fixed; inset:0; z-index:12; pointer-events:none;
     background:radial-gradient(135% 125% at 30% 22%, rgba(0,0,0,0) 45%, rgba(0,0,0,.28) 100%); }
   #byteAnim.bump{ animation:bump .7s ease-in-out; }
   @keyframes bump{ 0%,100%{ transform:rotate(0);} 15%{ transform:rotate(-5deg);} 35%{ transform:rotate(4deg);} 55%{ transform:rotate(-3deg);} 75%{ transform:rotate(2deg);} }
-  /* ONE leap per hop: he advances only while airborne (15–68%), grounded the rest of the time */
-  #byteAnim.leap{ animation:leap 430ms linear; transform-origin:50% 90%; }
-  @keyframes leap{   /* smooth parabolic hop — clean arc, soft landing, no squash pop */
-    0%   { transform:translateY(0);   animation-timing-function:cubic-bezier(.2,.65,.35,1); }   /* lift, decelerate to apex */
-    42%  { transform:translateY(-13%); animation-timing-function:cubic-bezier(.65,0,.8,.55); }  /* apex, accelerate down softly */
-    80%  { transform:translateY(0); }   /* land */
-    100% { transform:translateY(0); }   /* brief grounded settle */
+  /* HOP/humping cycle: bob up, land with an alternating left/right lift (two hops per stride) */
+  #byteAnim.walk{ animation:walk .9s linear infinite; transform-origin:50% 90%; }
+  @keyframes walk{
+    0%   { transform:translateY(0) rotate(-4.5deg); animation-timing-function:ease-out; }  /* land, tilt LEFT → push up */
+    25%  { transform:translateY(-10%) rotate(0deg); animation-timing-function:ease-in; }   /* peak → fall */
+    50%  { transform:translateY(0) rotate(4.5deg);  animation-timing-function:ease-out; }  /* land, tilt RIGHT → push up */
+    75%  { transform:translateY(-10%) rotate(0deg); animation-timing-function:ease-in; }   /* peak → fall */
+    100% { transform:translateY(0) rotate(-4.5deg); }
+  }
+  /* horizontal moves: same hop, NO side lilt (just the bob) */
+  #byteAnim.walk-flat{ animation:walkFlat .9s linear infinite; transform-origin:50% 90%; }
+  @keyframes walkFlat{
+    0%   { transform:translateY(0);   animation-timing-function:ease-out; }
+    25%  { transform:translateY(-10%); animation-timing-function:ease-in; }
+    50%  { transform:translateY(0);   animation-timing-function:ease-out; }
+    75%  { transform:translateY(-10%); animation-timing-function:ease-in; }
+    100% { transform:translateY(0); }
   }
   #byteAnim.cheer{ animation:cheer .55s ease infinite; }
   @keyframes cheer{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-12%);} }
@@ -344,7 +357,7 @@
         <div id="travelator" class="hide"></div>
         <div id="travLeft"  class="travH hide"></div>
         <div id="travRight" class="travH hide"></div>
-        <div id="byteWrap"><div id="byteShadow"></div><div id="byteAnim"><img id="byte" src="Assets/Byte%20Back.png" alt="Byte" /></div></div>
+        <div id="byteWrap"><div id="byteShadow"></div><div id="byteAnim"><img id="byte" src="Assets/back.png" alt="Byte" /></div></div>
         <img id="parcel" src="Assets/Parcel.png" alt="parcel" class="hide" />
         <img id="dog" alt="dog" class="hide" />
         <div id="scanBox"><div id="scanLine"></div></div>
@@ -384,18 +397,32 @@
 <script>
 /* ===================== Frame, sprites, anchors ===================== */
 const FRAME = { W:1920, H:1080 };
-const SPRITE = {
-  back:        "Assets/Byte%20Back.png",
-  left:        "Assets/Byte%20Left.png",
-  leftParcel:  "Assets/Byte%20Left%20with%20Parcel.png",
-  right:       "Assets/Byte%20Right.png",
-  rightParcel: "Assets/Byte%20Right%20with%20Parcel.png",
+/* MOVEMENT uses the animated GIF (side) or the back leg-cycle; STANDING uses static images. Side art faces RIGHT (flip for left). */
+const SPRITE = {  // STATIC standing images (side art faces RIGHT; flipped for left)
+  back:        "Assets/back.png",
+  left:        "Assets/Without_Parcel_Right_side.png",
+  leftParcel:  "Assets/With_Parcel_Right_side.png",
+  right:       "Assets/Without_Parcel_Right_side.png",
+  rightParcel: "Assets/With_Parcel_Right_side.png",
 };
-const NATIVE = {  // native px size of each sprite
-  back:[251,236], left:[201,242], leftParcel:[201,242], right:[201,242], rightParcel:[201,242],
+/* MOVEMENT = animated GIFs (right-facing source, flipped for left). nat=[render width,height] px, anc=foot point */
+const GIF = {  // anc = content centre (foot point); feet = measured leg-centre at the bottom (shadow sits here)
+  back:        { src:"Assets/Up%20movement.gif",                  flip:false, nat:[160,187], anc:[0.516,0.972], feet:0.505 },
+  left:        { src:"Assets/Rigth_movement_without_parcel.gif",  flip:true,  nat:[124,182], anc:[0.5,0.973],   feet:0.501 },
+  right:       { src:"Assets/Rigth_movement_without_parcel.gif",  flip:false, nat:[124,182], anc:[0.5,0.973],   feet:0.501 },
+  leftParcel:  { src:"Assets/Rigth_movement_with_parcel.gif",     flip:true,  nat:[124,182], anc:[0.5,0.991],   feet:0.472 },
+  rightParcel: { src:"Assets/Rigth_movement_with_parcel.gif",     flip:false, nat:[124,182], anc:[0.5,0.991],   feet:0.472 },
 };
-const ANCHOR = {  // foot point inside each sprite [centerX%, bottomY%] — measured from the art
-  back:[0.54,0.754], left:[0.53,0.74], leftParcel:[0.53,0.74], right:[0.47,0.74], rightParcel:[0.47,0.74],
+function setFlip(left){ byte.style.transform = left ? "scaleX(-1)" : ""; }
+function isLeftFacing(s){ return s==="left" || s==="leftParcel"; }
+/* preload + decode every Byte image/GIF up front so swapping src never flashes */
+const _byteImgs=[]; [...new Set([...Object.values(SPRITE), ...Object.values(GIF).map(g=>g.src)])].forEach(s=>{ const im=new Image(); im.src=s; _byteImgs.push(im); });
+/* all Byte frames are now one consistent 696x680 canvas (robot centred, feet at ~91%); render the robot ~175px */
+const NATIVE = {  // static standing frames (696x680); GIF movement uses GIF_NATIVE
+  back:[208,203], left:[208,203], leftParcel:[208,203], right:[208,203], rightParcel:[208,203],
+};
+const ANCHOR = {  // foot point inside each sprite [centerX%, bottomY%]
+  back:[0.486,0.921], left:[0.5,0.913], leftParcel:[0.5,0.913], right:[0.5,0.913], rightParcel:[0.5,0.913],
 };
 
 /* ---------------------------------------------------------------
@@ -404,8 +431,8 @@ const ANCHOR = {  // foot point inside each sprite [centerX%, bottomY%] — meas
    and Byte's FOOT point is kept on the path so sprites line up perfectly.
    --------------------------------------------------------------- */
 const WP = {
-  start:      { sprite:"back",  x:764.04, y:845 },   // ← your Figma value (-20px left)
-  cross:      { sprite:"back",  x:764,    y:401 },   // intersection (travels 50px further up)
+  start:      { sprite:"back",  x:840, y:845 },   // robot centres at ~941 = centre of the vertical path
+  cross:      { sprite:"back",  x:840, y:401 },   // intersection (same x → straight up the path centre)
   leftHouse:  { sprite:"left",  x:181,    y:426 },   // blue house
   rightHouse: { sprite:"right", x:1537.5, y:426 },   // in front of the orange house (~85%)
 };
@@ -463,53 +490,69 @@ function showParcel(isLeft, feet){            // drop the parcel by the door
 }
 function hideParcel(){ parcel.classList.add("hide"); }
 const dog=$("dog");
-const DOG_DOOR = { left:200, right:1800 };    // doorway the dog emerges from (content centre-x, per side)
-// the dog sprite is 1536x1024 with the dog content in a small region — position by that content:
-const DOG_VIS=118, DOG_NW=1536, DOG_CW=530, DOG_BOT=755, DOG_CCX={ left:815, right:720 };
-function dogPlace(isLeft, cx, feetY, animate, vis){   // cx = where the dog's centre goes, feetY = ground line; vis overrides visible width
-  dog.src = isLeft ? "Assets/Dog%20for%20left%20house.png" : "Assets/Dog%20for%20right%20house.png";
-  const S = (vis||DOG_VIS)/DOG_CW;            // scale so the visible dog is ~vis px wide
-  let ccx = isLeft ? DOG_CCX.left : DOG_CCX.right;
-  if(dog.style.getPropertyValue("--flip").trim()==="-1") ccx = DOG_NW - ccx;   // content centre mirrors when the dog faces the house
-  dog.style.transition = animate ? "left .38s ease-out, width .38s ease-out, top .38s ease-out" : "none";
-  dog.style.width = (DOG_NW*S/FRAME.W*100)+"%";
-  dog.style.left  = ((cx - ccx*S)/FRAME.W*100)+"%";
-  dog.style.top   = ((feetY - DOG_BOT*S)/FRAME.H*100)+"%";   // dog's paws land on the road
+/* Friendly delivery dog (standalone sprite). Art is 165x165; content centre x≈89, paws at y≈147.
+   Two frames: Dog.png (empty) and "Dog holidng parcel.png" (cradling the box) — same centre/ground so swaps are seamless. */
+const DOG_NW=165, DOG_CCX=89, DOG_VIS=80;
+function placeDog(cx, feetY, animate, holding, visW){   // cx = dog content centre, feetY = ground line
+  dog.src = holding ? "Assets/Dog%20holidng%20parcel.png" : "Assets/Dog.png";
+  const cw = holding?106:97, bot = holding?143:147;      // each sprite's OWN content size → swapping never changes the visible size
+  const S=(visW||DOG_VIS)/cw;                            // scale so the visible dog is ~visW px wide
+  let ccx=DOG_CCX;
+  if(dog.style.getPropertyValue("--flip").trim()==="-1") ccx=DOG_NW-ccx;
+  dog.style.transition = animate ? "left .3s ease-out, width .3s ease-out, top .3s ease-out, opacity .24s ease-out" : "none";
+  dog.style.width=(DOG_NW*S/FRAME.W*100)+"%";
+  dog.style.left =((cx-ccx*S)/FRAME.W*100)+"%";
+  dog.style.top  =((feetY-bot*S)/FRAME.H*100)+"%";       // paws on the road line
   if(!animate) dog.offsetHeight;
 }
 function hideDog(){ dog.classList.add("hide"); }
-async function dogRushOut(side, landX){       // dog dashes out of the door and lands at landX
-  const isLeft=side==="left", y=feetOf(WP.cross).y;
-  const doorX=DOG_DOOR[isLeft?"left":"right"];
-  setHouse(side,"open");                      // door is open, no dog sitting
-  dog.style.setProperty("--flip","1");        // facing out toward Byte
-  dogPlace(isLeft, doorX, y, false);          // dog appears at the door...
-  dog.classList.remove("hide");
-  await sleep(30);
-  dog.classList.add("dogjump");               // ...and bounds out onto the path
-  dogPlace(isLeft, landX, y, true);
-  await sleep(400); dog.classList.remove("dogjump");
+async function tossParcelToDog(isLeft, fromX, dogX, feetY){   // Byte lobs the parcel into the dog's paws
+  const w=83,h=76;
+  const startX=fromX+(isLeft?-45:45), startY=feetY-150;     // from Byte's hands
+  const endX=dogX+(isLeft?14:-14), endY=feetY-50;           // into the dog's front paws
+  parcel.style.transition="none";
+  parcel.style.width=(w/FRAME.W*100)+"%";
+  parcel.style.left=((startX-w/2)/FRAME.W*100)+"%";
+  parcel.style.top=((startY-h)/FRAME.H*100)+"%";
+  parcel.classList.remove("hide"); parcel.offsetHeight;
+  sfxThrow();
+  parcel.style.transition="left .5s ease-in, top .5s cubic-bezier(.4,-.4,.7,1)";   // gentle arc
+  parcel.style.left=((endX-w/2)/FRAME.W*100)+"%";
+  parcel.style.top=((endY-h)/FRAME.H*100)+"%";
+  await sleep(500);
 }
-function oneBark(){ dog.classList.add("barking"); playBarkOnce(); setTimeout(()=>dog.classList.remove("barking"), 260); }  // one lively bark
-async function dogBackIn(side, fromX){        // dog turns to face the house, then bounds home in two hops
-  const isLeft=side==="left", y=feetOf(WP.cross).y;
-  const door=DOG_DOOR[isLeft?"left":"right"];
-  dog.style.setProperty("--flip","-1");       // turn around to face the house...
-  if(fromX!=null) dogPlace(isLeft, fromX, y, false);   // re-anchor in place so the turn doesn't shift it sideways
-  await sleep(160);                           // ...a beat so the turn reads...
-  const mid = fromX!=null ? (fromX+door)/2 : door;
-  // hop 1 — partway toward the house, still full size
-  dog.classList.add("dogjump");
-  dogPlace(isLeft, mid, y, true);
-  await sleep(420);
-  dog.classList.remove("dogjump"); void dog.offsetWidth;   // let the animation restart
-  // hop 2 — shrinks as it scampers off and lands right by the door
-  dog.classList.add("dogjump");
-  dogPlace(isLeft, door, y, true, 84);                     // final, smaller size
-  await sleep(420); dog.classList.remove("dogjump");
+/* The smooth "dog accepts the parcel" scene — the door is already open when this runs. */
+async function dogCatchScene(side, hf){
+  const isLeft=side==="left", feetY=hf.y;
+  const doorCx=isLeft?187:1808;               // centre of the door the dog uses
+  const doorY=feetY-115;                      // the door threshold sits ABOVE the road, up at the house
+  const dogX=hf.x+(isLeft?-150:150);          // stand a clear gap from Byte so they never overlap, out on the path
+  dog.style.setProperty("--flip", isLeft ? "-1" : "1"); dog.style.opacity="";   // mirror at the left house so it faces Byte & holds the parcel on the toss side
+  // door is open — the dog trots OUT of the doorway: medium up at the door → full size on the path (quick, smooth)
+  placeDog(doorCx, doorY, false, false, 54);
+  dog.classList.remove("hide");
+  await sleep(20);
+  placeDog(dogX, feetY, true, false, DOG_VIS);
+  if(isLeft) playBarkOnce();                  // one happy bark (left house only)
+  await sleep(320);
+
+  say("Here you go! 🎉"); await speak("Here you go!");
+  setByte(isLeft?"left":"right", hf.x, hf.y); // hands go empty exactly as the parcel leaves them
+  await tossParcelToDog(isLeft, hf.x, dogX, feetY);
+
+  parcel.classList.add("hide");               // caught! — SAME size, simply now holding the parcel
+  placeDog(dogX, feetY, false, true, DOG_VIS);
+  void dog.offsetWidth; dog.classList.add("dogjump");   // one happy catch hop (no resize)
+  if(isLeft) playBarkOnce();                  // happy bark (left house only)
+  sfxCollect();
+  await sleep(380); dog.classList.remove("dogjump");
+  await sleep(80);
+
+  // straight back to the doorway FAST, barely shrinking; the instant it reaches the door it flips to House + Dog + Parcel
+  placeDog(doorCx, doorY, true, true, 66);
+  await sleep(230);
+  setHouse(side, "dogparcel");
   hideDog();
-  await houseClose(side);
-  dog.style.setProperty("--flip","1");        // reset facing for next time
 }
 const headPop=$("headPop");
 function showHeadPop(side){            // bubble close to Byte, on the matching side
@@ -539,11 +582,12 @@ function setHouse(side, variant){
 }
 function closeHouses(){ setHouse("left",""); setHouse("right",""); }
 async function houseOpen(side){ setHouse(side,"open"); await sleep(130); setHouse(side,"dog"); }   // door cracks, then the dog pulls it open
-async function houseClose(side){   // dog steps back, door shuts, house gives a little bounce
-  setHouse(side,"open"); await sleep(130); setHouse(side,"");
+async function houseClose(side){   // dog steps back, door shuts (with sound), house gives a little bounce
+  setHouse(side,"open"); await sleep(130);
+  sfxDoorClose(); setHouse(side,"");                   // the door shuts — synced to the close sound
   const el = side==="left" ? houseLeft : houseRight;
   el.classList.remove("happy"); void el.offsetWidth;   // restart cleanly if a happy hop just played
-  el.classList.add("bounce"); sfxPopOff();
+  el.classList.add("bounce");
   await sleep(450); el.classList.remove("bounce");
 }
 async function houseHappy(side){   // the house gives a joyful squash-stretch hop when it gets its parcel
@@ -587,8 +631,11 @@ function topLeftFor(sprite, footX, footY){
   const [w,h]=NATIVE[sprite], [ax,ay]=ANCHOR[sprite];
   return { left:(footX-ax*w)/FRAME.W*100, top:(footY-ay*h)/FRAME.H*100, w:w/FRAME.W*100 };
 }
-function setByte(sprite, footX, footY){           // instant placement
-  byte.src=SPRITE[sprite]; curSprite=sprite;
+function placeShadow(sprite){ byteShadow.style.left=(ANCHOR[sprite][0]*100)+"%"; byteShadow.style.top=(ANCHOR[sprite][1]*100)+"%"; }   // centre the pool on this pose's feet
+function setByte(sprite, footX, footY){           // instant placement — STATIC standing image
+  byte.src=SPRITE[sprite]; curSprite=sprite; setFlip(isLeftFacing(sprite));
+  byteShadow.classList.remove("sh-walk","sh-side");   // back to the calm standing pool
+  placeShadow(sprite);
   const b=topLeftFor(sprite,footX,footY);
   byteWrap.style.transition="none";
   byteWrap.style.width=b.w+"%"; byteWrap.style.left=b.left+"%"; byteWrap.style.top=b.top+"%";
@@ -602,31 +649,40 @@ async function nudge(footX, footY, dur){          // quick small move, keeps cur
   lastFootX=footX; lastFootY=footY;
   await sleep(dur+20); byteWrap.style.transition="";
 }
-/* ---- discrete hopping locomotion: Byte advances ONLY while airborne, both vertical & horizontal ---- */
-const HOP_STEP=120;                               // frame-px advanced per hop (smaller = shorter hops)
-const HOP_CROUCH=0, HOP_AIR=345, HOP_TOTAL=430;   // ms: airborne window + brief settle (matches @keyframes leap: arc 0–80%)
+/* ---- movement: flat glide showing the animated GIF; motor whirr while moving ---- */
+const WALK_SPEED=0.22;                             // horizontal pace (frame-px per ms) — slow walk
+const WALK_SPEED_V=0.13;                           // vertical pace — slower climb up the path
 async function moveByte(sprite, footX, footY){
-  byte.src=SPRITE[sprite]; curSprite=sprite;
-  const b=topLeftFor(sprite,footX,footY);
-  byteWrap.style.width=b.w+"%";
-  const sx=lastFootX, sy=lastFootY;
-  const dist=Math.hypot(footX-sx, footY-sy);
-  const hops=Math.max(1, Math.round(dist/HOP_STEP));
-  for(let i=1;i<=hops;i++){
-    const tx=sx+(footX-sx)*i/hops, ty=sy+(footY-sy)*i/hops;
-    const tl=topLeftFor(sprite,tx,ty);
-    // restart the leap + shadow for this hop
-    byteAnim.classList.remove("leap"); byteShadow.classList.remove("sh-leap"); void byteAnim.offsetWidth;
-    byteAnim.classList.add("leap"); byteShadow.classList.add("sh-leap");
-    // advance ONLY while airborne, at CONSTANT horizontal speed (linear) → true parabola with the vertical arc
-    byteWrap.style.transition=`left ${HOP_AIR}ms linear ${HOP_CROUCH}ms, top ${HOP_AIR}ms linear ${HOP_CROUCH}ms`;
-    requestAnimationFrame(()=>{ byteWrap.style.left=tl.left+"%"; byteWrap.style.top=tl.top+"%"; });
-    setTimeout(sfxStep, HOP_CROUCH+HOP_AIR);    // one soft tap on landing
-    await sleep(HOP_TOTAL);
-  }
-  byteAnim.classList.remove("leap"); byteShadow.classList.remove("sh-leap");
-  byteWrap.style.transition="";
+  curSprite=sprite;
+  const g = GIF[sprite] || GIF.back;                 // every facing has an animated GIF
+  byte.src = g.src; setFlip(g.flip);                 // self-animating walk, flipped for left
+  const nat = g.nat, anc = g.anc;
+  const feetCx = g.feet ?? anc[0];                                     // leg centre at the bottom of the art
+  byteShadow.style.left=((g.flip ? 1-feetCx : feetCx)*100)+"%";        // mirror when the sprite is flipped
+  byteShadow.style.top=(anc[1]*100)+"%";
+  byteShadow.classList.remove("sh-walk","sh-side");
+  byteShadow.classList.add("sh-walk");                                 // soft breathing pool while moving
+  if(sprite!=="back") byteShadow.classList.add("sh-side");             // lighter & smaller for the horizontal walk
+  const dx=footX-lastFootX, dy=footY-lastFootY, dist=Math.hypot(dx, dy);
+  const horizontal = Math.abs(dx) >= Math.abs(dy);
+  const dur=Math.min(horizontal?2600:3600, Math.max(500, dist/(horizontal?WALK_SPEED:WALK_SPEED_V)));
+  // SNAP the GIF onto the current foot with no transition, so swapping from the static frame
+  // (different native width) never slides sideways. The glide below is then a pure straight line.
+  byteWrap.style.transition="none";
+  byteWrap.style.width=(nat[0]/FRAME.W*100)+"%";
+  byteWrap.style.left =((lastFootX-anc[0]*nat[0])/FRAME.W*100)+"%";
+  byteWrap.style.top  =((lastFootY-anc[1]*nat[1])/FRAME.H*100)+"%";
+  byteWrap.offsetHeight;                             // force reflow to lock the snap
   lastFootX=footX; lastFootY=footY;
+  startMotor();                                      // motor rotation sound while moving
+  const tl={ left:(footX-anc[0]*nat[0])/FRAME.W*100, top:(footY-anc[1]*nat[1])/FRAME.H*100 };
+  byteWrap.style.transition=`left ${dur}ms linear, top ${dur}ms linear`;   // steady, flat glide
+  await new Promise(res=>{
+    let done=false; const fin=()=>{ if(done)return; done=true; stopMotor(); byteWrap.removeEventListener("transitionend",fin); res(); };
+    byteWrap.addEventListener("transitionend",fin); setTimeout(fin, dur+250);
+    requestAnimationFrame(()=>{ byteWrap.style.left=tl.left+"%"; byteWrap.style.top=tl.top+"%"; });
+  });
+  setByte(sprite, footX, footY);                     // settle on the STATIC standing image
 }
 
 /* ===================== Look both ways ===================== */
@@ -675,6 +731,51 @@ function highlightTarget(on, showArrow){
 
 /* ---------- Sound + speech ---------- */
 let actx;
+/* Motor-rotation sound, ONE burst per leg step, synced to the .9s walk cadence.
+   The recorded clip is ~1.18s, longer than a footfall, so we analyse it once to find its
+   most energetic ~0.4s span (the meat of the rotation, skipping any quiet head/tail) and
+   fire just that slice each step — time-fitted to one footfall, with a tiny L/R pitch
+   difference so alternating legs sound distinct. Falls back to a synth whirr until it loads. */
+const WALK_CYCLE_MS=900, STEP_MS=WALK_CYCLE_MS/2;   // matches @keyframes walk / footShadow timing
+let motorBuf=null, motorCore={off:0, len:0.4};
+let motorTimer=null, motorStep=0;
+function loadMotorBuffer(){
+  if(motorBuf || !actx) return;
+  fetch("Audio/motor%20rotation.mp3").then(r=>r.arrayBuffer()).then(ab=>actx.decodeAudioData(ab)).then(buf=>{
+    const ch=buf.getChannelData(0), sr=buf.sampleRate, N=ch.length, wl=Math.max(1,Math.floor(sr*0.05));
+    const env=[]; for(let i=0;i<N;i+=wl){ let s=0,c=0; for(let j=i;j<i+wl&&j<N;j++){ s+=ch[j]*ch[j]; c++; } env.push(Math.sqrt(s/Math.max(1,c))); }
+    const span=Math.max(1,Math.round(0.4/0.05)); let best=-1, bi=0, run=0;     // slide a ~0.4s window, keep the loudest
+    for(let k=0;k<env.length;k++){ run+=env[k]; if(k>=span) run-=env[k-span]; if(k>=span-1 && run>best){ best=run; bi=k-span+1; } }
+    motorCore.off=Math.max(0, bi*0.05);
+    motorCore.len=Math.max(0.18, Math.min(span*0.05, buf.duration-motorCore.off));
+    motorBuf=buf;
+  }).catch(()=>{ motorBuf=null; });
+}
+function playMotorStep(){
+  if(!actx) return;
+  const t=actx.currentTime, dur=STEP_MS/1000, left=(motorStep++ % 2===0);
+  if(motorBuf){
+    const src=actx.createBufferSource(), g=actx.createGain();
+    src.buffer=motorBuf;
+    src.playbackRate.value = (motorCore.len/dur) * (left?0.97:1.05);   // fit core to one step; L/R differ a touch
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(left?0.30:0.26, t+0.03);
+    g.gain.setValueAtTime(left?0.30:0.26, t+dur*0.55); g.gain.exponentialRampToValueAtTime(0.001, t+dur*0.98);
+    src.connect(g); g.connect(actx.destination);
+    try{ src.start(t, motorCore.off, motorCore.len); src.stop(t+dur+0.05); }catch(e){}
+  } else {                                          // fallback whirr burst (one per step) until the clip decodes
+    const o=actx.createOscillator(), g=actx.createGain(), lp=actx.createBiquadFilter();
+    o.type="sawtooth"; o.frequency.setValueAtTime(70,t); o.frequency.linearRampToValueAtTime(left?115:128,t+dur*0.4); o.frequency.linearRampToValueAtTime(72,t+dur*0.9);
+    lp.type="lowpass"; lp.frequency.value=430;
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.05,t+0.03); g.gain.exponentialRampToValueAtTime(0.001,t+dur*0.95);
+    o.connect(lp); lp.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+dur);
+  }
+}
+function startMotor(){
+  if(!actx || motorTimer) return;
+  motorStep=0; playMotorStep();                     // first footfall fires immediately
+  motorTimer=setInterval(playMotorStep, STEP_MS);   // one rotation per step, in step with the legs
+}
+function stopMotor(){ if(motorTimer){ clearInterval(motorTimer); motorTimer=null; } }
 function tone(f,s,d,t="sine",v=0.2){ if(!actx)return; const o=actx.createOscillator(),g=actx.createGain();
   o.type=t;o.frequency.value=f;o.connect(g);g.connect(actx.destination); const x=actx.currentTime+s;
   g.gain.setValueAtTime(0,x);g.gain.linearRampToValueAtTime(v,x+.02);g.gain.exponentialRampToValueAtTime(.001,x+d);o.start(x);o.stop(x+d+.05); }
@@ -754,6 +855,13 @@ function sfxHop(){   // punchy cartoon boing + soft tap, one per jump
   o2.connect(g2); g2.connect(actx.destination); o2.start(t); o2.stop(t+0.1);
 }
 function scanBeep(){ if(!actx) return; tone(740,0,.07,"square",.12); tone(990,.12,.07,"square",.12); tone(1320,.24,.09,"square",.12); }
+/* recorded door open / close sounds */
+const doorOpenAudio = new Audio("Audio/Door%20open.mp3"), doorCloseAudio = new Audio("Audio/Door%20clsoed.mp3");
+doorOpenAudio.preload="auto"; doorCloseAudio.preload="auto";
+function sfxDoorOpen(){  try{ doorOpenAudio.currentTime=0;  const p=doorOpenAudio.play();  if(p&&p.catch)p.catch(()=>{}); }catch(e){} }
+function sfxDoorClose(){ try{ doorCloseAudio.currentTime=0; const p=doorCloseAudio.play(); if(p&&p.catch)p.catch(()=>{}); }catch(e){} }
+const throwAudio = new Audio("Audio/Throw.mp3"); throwAudio.preload="auto";
+function sfxThrow(){ try{ throwAudio.currentTime=0; const p=throwAudio.play(); if(p&&p.catch)p.catch(()=>{}); }catch(e){} }
 /* Real recorded bark from Audio/dog bark.ogg. Falls back to synth if missing. */
 const barkAudio = new Audio("Audio/dog%20bark.ogg");
 barkAudio.preload = "auto";
@@ -765,10 +873,11 @@ function playBarkOnce(){
   }catch(e){ sfxBark(); }
 }
 function playBark(){ playBarkOnce(); setTimeout(playBarkOnce, 2000); }   // bark twice, 2s apart
-function barkAndWait(){   // play one bark, pulse the dog while it sounds, resolve when finished
+function barkAndWait(el){   // play one bark, pulse the given element while it sounds, resolve when finished
+  el = el || dog;
   return new Promise(res=>{
-    let done=false; const fin=()=>{ if(done)return; done=true; dog.classList.remove("barking"); res(); };
-    dog.classList.add("barking");                  // dog visibly barks with the sound
+    let done=false; const fin=()=>{ if(done)return; done=true; el.classList.remove("barking"); res(); };
+    el.classList.add("barking");                   // the house+dog visibly pulses with the bark
     try{
       barkAudio.currentTime=0;
       barkAudio.addEventListener("ended", fin, {once:true});
@@ -814,16 +923,17 @@ function pickVoice(){ try{ const vs=speechSynthesis.getVoices(); if(!vs||!vs.len
 if("speechSynthesis"in window){ pickVoice(); window.speechSynthesis.onvoiceschanged=pickVoice; }
 function speak(t){   // returns a promise that resolves when the line finishes (so callers can await it)
   return new Promise(res=>{
+    if(!("speechSynthesis"in window)){ res(); return; }
+    let done=false; const fin=()=>{ if(done)return; done=true; unduckForVO(); res(); };
+    duckForVO();                            // lower the music so the spoken line is clearly audible
     try{
-      if(!("speechSynthesis"in window)){ res(); return; }
       speechSynthesis.cancel();
       const u=new SpeechSynthesisUtterance(t); u.rate=.95; u.pitch=1.0;
       if(preferredVoice) u.voice=preferredVoice;
-      let done=false; const fin=()=>{ if(done)return; done=true; res(); };
       u.onend=fin; u.onerror=fin;
       setTimeout(fin, 900 + t.length*75);   // fallback if onend never fires
       speechSynthesis.speak(u);
-    }catch(e){ res(); }
+    }catch(e){ fin(); }
   });
 }
 let moveSpeakTimer=null;
@@ -857,27 +967,61 @@ function pickColors(){            // choose two distinct house colours and show 
   leftColor=pool[0]; rightColor=pool[1]; closeHouses();
 }
 
-/* ---- gentle, subtle background music: soft synth pad + a light bell, slow chord loop ---- */
-let musicTimer=null, musicGain=null;
-const MUSIC_CHORDS=[[262,330,392],[196,294,392],[220,277,330],[174,220,261]];  // C · G · Am · F (soft, warm)
-function startMusic(){
-  if(!actx || musicTimer) return;
-  musicGain=actx.createGain(); musicGain.gain.value=0.05; musicGain.connect(actx.destination);
-  let i=0;
-  const playChord=()=>{
-    if(!actx) return; const t=actx.currentTime, ch=MUSIC_CHORDS[i++ % MUSIC_CHORDS.length];
-    ch.forEach((f)=>{ const o=actx.createOscillator(), g=actx.createGain();      // soft sustained pad
-      o.type="sine"; o.frequency.value=f;
-      g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.5,t+0.9); g.gain.linearRampToValueAtTime(0.0001,t+3.8);
-      o.connect(g); g.connect(musicGain); o.start(t); o.stop(t+3.9); });
-    const b=actx.createOscillator(), bg=actx.createGain();                         // gentle bell on the root, an octave up
-    b.type="triangle"; b.frequency.value=ch[0]*2;
-    bg.gain.setValueAtTime(0,t+0.05); bg.gain.linearRampToValueAtTime(0.16,t+0.12); bg.gain.exponentialRampToValueAtTime(0.0001,t+1.6);
-    b.connect(bg); bg.connect(musicGain); b.start(t+0.05); b.stop(t+1.7);
-  };
-  playChord(); musicTimer=setInterval(playChord, 3400);
+/* ---- background music: pick the steadiest ("linear") passage of the track and seamlessly loop ONLY that ---- */
+const MUSIC_VOL = 0.16, MUSIC_DUCK = 0.05;        // low but clearly hearable; dips further under VO
+const MUSIC_LOOP_SEC = 10;                        // length of the repeated section
+let musicBuf=null, musicLoop={start:0,end:0}, musicSrc=null, musicGain=null;
+let musicOn=false, musicWantOn=false, voActive=0;
+function loadMusicBuffer(){
+  if(musicBuf || !actx) return;
+  fetch("Audio/Backgruond%20music.mp3").then(r=>r.arrayBuffer()).then(ab=>actx.decodeAudioData(ab)).then(buf=>{
+    const ch=buf.getChannelData(0), sr=buf.sampleRate, N=ch.length, step=0.2, wl=Math.floor(sr*step);
+    const env=[]; for(let i=0;i<N;i+=wl){ let s=0,c=0; for(let j=i;j<i+wl&&j<N;j++){ s+=ch[j]*ch[j]; c++; } env.push(Math.sqrt(s/Math.max(1,c))); }
+    const gMean=env.reduce((a,b)=>a+b,0)/Math.max(1,env.length);
+    const span=Math.round(MUSIC_LOOP_SEC/step), pad=Math.round(3/step);   // ignore first/last ~3s (intro/outro)
+    let best=Infinity, bi=pad;
+    for(let k=pad; k+span<env.length-pad; k++){    // steadiest window = lowest relative variation, with real energy
+      let m=0; for(let j=k;j<k+span;j++) m+=env[j]; m/=span;
+      if(m < 0.55*gMean) continue;                 // skip quiet breakdowns so the loop still has presence
+      let v=0; for(let j=k;j<k+span;j++){ const d=env[j]-m; v+=d*d; } v/=span;
+      const cov=Math.sqrt(v)/m;
+      if(cov<best){ best=cov; bi=k; }
+    }
+    const refine=(sec)=>{ let c=Math.floor(sec*sr), r=Math.floor(sr*0.06), bI=c, bv=Infinity;   // snap to a quiet sample → softer seam
+      for(let i=Math.max(0,c-r); i<Math.min(ch.length-1,c+r); i++){ const a=Math.abs(ch[i]); if(a<bv){ bv=a; bI=i; } } return bI/sr; };
+    const s0=bi*step, e0=(bi+span)*step;
+    musicLoop.start=refine(s0); musicLoop.end=refine(e0);
+    if(!(musicLoop.end>musicLoop.start)){ musicLoop.start=Math.min(8,buf.duration*0.1); musicLoop.end=Math.min(buf.duration, musicLoop.start+MUSIC_LOOP_SEC); }
+    musicBuf=buf;
+    if(musicWantOn) startMusic();                  // were waiting on the decode → start now
+  }).catch(()=>{ musicBuf=null; });
 }
-function stopMusic(){ if(musicTimer){ clearInterval(musicTimer); musicTimer=null; } if(musicGain){ musicGain.gain.value=0; musicGain=null; } }
+function rampGain(target, sec){                    // smooth gain glide on the music bus — never a sudden jump
+  if(!musicGain || !actx) return; const t=actx.currentTime;
+  musicGain.gain.cancelScheduledValues(t);
+  musicGain.gain.setValueAtTime(Math.max(0.0001, musicGain.gain.value), t);
+  musicGain.gain.linearRampToValueAtTime(Math.max(0.0001, target), t+sec);
+}
+function startMusic(){
+  if(musicOn) return;
+  if(!musicBuf){ musicWantOn=true; return; }       // start as soon as the buffer is ready
+  musicOn=true; musicWantOn=false;
+  musicGain=actx.createGain(); musicGain.gain.value=0.0001; musicGain.connect(actx.destination);
+  musicSrc=actx.createBufferSource(); musicSrc.buffer=musicBuf;
+  musicSrc.loop=true; musicSrc.loopStart=musicLoop.start; musicSrc.loopEnd=musicLoop.end;
+  musicSrc.connect(musicGain);
+  try{ musicSrc.start(0, musicLoop.start); }catch(e){}
+  rampGain(voActive>0 ? MUSIC_DUCK : MUSIC_VOL, 1.4);   // gentle fade-in
+}
+function stopMusic(){
+  if(!musicOn) return; musicOn=false; musicWantOn=false;
+  rampGain(0.0001, 0.5);
+  const s=musicSrc; musicSrc=null;
+  setTimeout(()=>{ try{ s && s.stop(); }catch(e){} }, 560);
+}
+/* duck while a VO line plays so kids hear it clearly; ease back up slowly when ALL lines finish */
+function duckForVO(){ voActive++; if(voActive===1 && musicOn) rampGain(MUSIC_DUCK, 0.26); }
+function unduckForVO(){ voActive=Math.max(0,voActive-1); if(voActive===0 && musicOn) rampGain(MUSIC_VOL, 1.2); }
 
 function startGame(){
   score=0; round=0; scoreEl.innerHTML=PARCEL_ICON+" 0";
@@ -888,28 +1032,12 @@ function startGame(){
 
 async function introSequence(){
   busy=true; showButtons(false); hideBubble(); bigBtn.classList.add("hide"); hideParcel(); hideDog(); highlightTarget(false);
-  pickColors();                                   // show the round-1 houses so the demo matches
+  pickColors();                                   // set up the round-1 houses
   const sf=feetOf(WP.start);
   setByte("back", sf.x, FRAME.H+260);             // Byte waits just below the bottom of the frame
 
-  // 1) a little guide arrow demonstrates the route (moves only straight: up, then sideways)
-  introGuide.style.transition="none"; setGuide(49,86,0); void introGuide.offsetWidth; // snap to the start at the bottom (no slide-in)
-  introGuide.style.transition=""; introGuide.style.opacity="1"; await sleep(450);
-  say("Byte drives up the path to the crossing.");
-  await speak("Byte drives up the path to the crossing");
-  setGuide(49,52,0); await sleep(1000);           // straight up the path to the junction
-  setGuide(30,52,-90);                            // straight left along the road (symmetric: 49-19)
-  say("Turn LEFT to reach the "+colorWord(leftColor)+" house.");
-  await speak("Turn left to reach the "+leftColor+" house"); await sleep(450);
-  setGuide(68,52,90);                             // straight across to the right (symmetric: 49+19)
-  say("Turn RIGHT to reach the "+colorWord(rightColor)+" house.");
-  await speak("Turn right to reach the "+rightColor+" house"); await sleep(450);
-  introGuide.style.opacity="0"; hideBubble(); await sleep(300);
-
-  // 2) announcement transition
+  // straight into the announcement, then Byte walks in and the first round begins
   await announce("Help Byte deliver the parcels! 📦");
-
-  // 3) Byte walks in from the bottom of the frame (no lilt on the way in)
   await moveByte("back", sf.x, sf.y);
 
   reuseColors=true; busy=false;
@@ -968,17 +1096,11 @@ async function choose(side){
   setByte(parcelSprite, hf.x, hf.y);
   say("Delivery! Delivery! 📦"); await speak("Delivery! Delivery!");   // let the call finish
   await sleep(150);
-  setHouse(side, "open");                       // the door opens
+  sfxDoorOpen(); setHouse(side, "open");        // the door opens — synced to the open sound
   await sleep(300);
 
   if(correct){
-    setHouse(side, "dog");                       // friendly dog appears at the door to receive
-    await sleep(300);
-    say("Here you go! 🎉"); await speak("Here you go!");
-    setByte(moveSprite, hf.x, hf.y);            // hands go empty exactly as the parcel leaves them
-    await tossParcelToDoor(side, hf);           // parcel flies to the door
-    setHouse(side, "dogparcel");                // the dog catches and holds the parcel
-    await sleep(550);
+    await dogCatchScene(side, hf);              // dog hops out, Byte hands over the parcel, dog catches it & carries it inside
     await houseHappy(side);                     // the house does a joyful little hop
     await houseClose(side);                     // door shuts
     sfxWin(); confetti(); byteAnim.classList.add("cheer");
@@ -988,45 +1110,20 @@ async function choose(side){
     if(score>=TOTAL_ROUNDS){ endGame(); busy=false; return; }
     bigBtn.classList.remove("hide"); $("btnOverlay").classList.add("show"); busy=false;
   } else {
-    // wrong house — the dog bursts out and Byte springs back in fear, then the dog lunges
+    // wrong house — the dog appears in the doorway and barks once; Byte waits calmly, then heads back when the door shuts
     banner("Oh no! 🚫","#ff5b5b");
-    const back     = isLeft ? 1 : -1;             // direction Byte recoils (away from the house)
-    const recoilX  = hf.x + back*230;             // Byte leaps back toward the path
-    const dogOutX  = recoilX - back*210;          // dog lands on the house-side of Byte — clear gap, no overlap
-    const dogLungeX= recoilX - back*185;          // dog lunges in closer on the 2nd bark
-    const groundY  = feetOf(WP.cross).y;
     const backParcel = isLeft ? "rightParcel" : "leftParcel";
+    const houseEl  = isLeft ? houseLeft : houseRight;
 
-    // BARK 1 — dog leaps out of the door while Byte springs back: they never overlap
-    byteAnim.classList.add("bump"); sfxFail();
-    dog.classList.add("barking"); playBarkOnce();
-    const recoilP = nudge(recoilX, hf.y, 360);    // Byte recoils in fear...
-    await dogRushOut(side, dogOutX);              // ...dog bounds out beside him (not on top)
-    await recoilP;
-    await sleep(650);
-    dog.classList.remove("barking");
-    await sleep(450);
+    setHouse(side, "dog"); sfxFail();              // dog appears in the doorway (static image)
+    await sleep(260);                              // a beat so it registers
+    await barkAndWait(houseEl);                    // the dog barks once (house+dog pulses only while it sounds)
+    await sleep(150);
 
-    // BARK 2 — the dog lunges toward Byte to attack
-    dog.classList.add("barking"); playBarkOnce();
-    dogPlace(isLeft, dogLungeX, groundY, true);
-    await sleep(1100);
-    dog.classList.remove("barking");
-    await sleep(450);
+    await houseClose(side);                        // dog ducks back in, the door closes
 
-    // BARK 3 — Byte turns and runs home as the dog gives its last bark
-    dog.classList.add("barking"); playBarkOnce();
-    byteAnim.classList.remove("bump");
-    setByte(backParcel, recoilX, hf.y);
-    travel(isLeft ? "left-back" : "right-back");
-    const byteReturning = moveByte(backParcel, cf.x, cf.y).then(()=>{ stopMoveSpeak(); });
-    await sleep(1100);
-    dog.classList.remove("barking");
-
-    // the dog finishes its last bark, then turns and trots back into the house
-    await dogBackIn(side, dogLungeX);
-    await byteReturning;                           // Byte reaches the intersection
-    travel("none");
+    setByte(backParcel, hf.x, hf.y);               // only now does Byte turn and walk back to the crossing
+    await moveByte(backParcel, cf.x, cf.y);
     setByte("back", cf.x, cf.y); byteAnim.classList.add("idle");
 
     // then the narrator explains
@@ -1048,6 +1145,7 @@ async function tossParcelToDoor(side, hf){       // Byte tosses the parcel into 
   parcel.style.left=((startX-w/2)/FRAME.W*100)+"%";
   parcel.style.top=((startY-h)/FRAME.H*100)+"%";
   parcel.classList.remove("hide"); parcel.offsetHeight;
+  sfxThrow();                                    // throw sound as the parcel is tossed
   parcel.style.transition="left .5s ease-in, top .5s cubic-bezier(.4,-.4,.7,1)";
   parcel.style.left=((doorX-w/2)/FRAME.W*100)+"%";
   parcel.style.top=((doorY-h)/FRAME.H*100)+"%";
@@ -1064,7 +1162,7 @@ function endGame(){
 }
 
 /* ===================== Controls ===================== */
-function ensureAudio(){ try{ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==="suspended") actx.resume(); }catch(e){} }
+function ensureAudio(){ try{ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==="suspended") actx.resume(); loadMotorBuffer(); loadMusicBuffer(); }catch(e){} }
 $("startBtn").addEventListener("click", ()=>{ ensureAudio(); sfxClick(); startGame(); });
 bigBtn.addEventListener("click",  ()=>{ ensureAudio(); sfxClick(); nextRound(); });
 againBtn.addEventListener("click",()=>{ ensureAudio(); sfxClick(); startGame(); });
