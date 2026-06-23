@@ -717,6 +717,14 @@ function say(t){ const wasHidden=!bubble.classList.contains("show"); bubbleText.
 }
 const COLOR_NAME={ red:"Red", blue:"Blue", yellow:"Yellow" };
 const COLOR_HEX ={ red:"#e8402c", blue:"#1f93d6", yellow:"#f0a500" };
+/* Preload every house variant + dog frame + parcel up front, so on-demand src swaps are instant
+   even over the network on Vercel (otherwise a large composite can pop in a frame late on first use). */
+const _sceneImgs=[]; (function preloadScene(){
+  const urls=[];
+  for(const c of Object.keys(COLOR_NAME)) for(const v of ["","open","dog","dogparcel"]) urls.push(houseFile(c, v));
+  urls.push("Assets/Dog.png","Assets/Dog%20holidng%20parcel.png","Assets/Parcel.png","Assets/back.png");
+  urls.forEach(u=>{ const im=new Image(); im.src=u; _sceneImgs.push(im); });
+})();
 function colorWord(color){  // the house colour, in its own colour, Poppins semi-bold
   return '<span style="font-family:\'Poppins\',sans-serif;font-weight:600;color:'+COLOR_HEX[color]+'">'+COLOR_NAME[color].toUpperCase()+'</span>';
 }
