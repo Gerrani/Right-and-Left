@@ -495,8 +495,8 @@ const dog=$("dog");
 const DOG_NW=165, DOG_CCX=89, DOG_VIS=80;
 function placeDog(cx, feetY, animate, holding, visW){   // cx = dog content centre, feetY = ground line
   dog.src = holding ? "Assets/Dog%20holidng%20parcel.png" : "Assets/Dog.png";
-  const cw = holding?106:97, bot = holding?143:147;      // each sprite's OWN content size → swapping never changes the visible size
-  const S=(visW||DOG_VIS)/cw;                            // scale so the visible dog is ~visW px wide
+  const cw = 97, bot = holding?143:147;                  // SAME body scale for both frames → catching the parcel never resizes the dog (only the ground line differs)
+  const S=(visW||DOG_VIS)/cw;                            // scale so the dog body is ~visW px wide
   let ccx=DOG_CCX;
   if(dog.style.getPropertyValue("--flip").trim()==="-1") ccx=DOG_NW-ccx;
   dog.style.transition = animate ? "left .3s ease-out, width .3s ease-out, top .3s ease-out, opacity .24s ease-out" : "none";
